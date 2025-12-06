@@ -1,230 +1,195 @@
-import React, { useContext } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, ScrollView, Switch } from 'react-native';
+import React, { useContext, useState } from 'react';
+import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Modal, FlatList } from 'react-native';
 import { TimerContext } from '../context/TimerContext';
 import { Ionicons } from '@expo/vector-icons';
 
 const SettingsScreen = ({ navigation }) => {
-  const { 
-    workTime, setWorkTime, 
-    shortBreakTime, setShortBreakTime, 
+  const {
+    workTime, setWorkTime,
+    shortBreakTime, setShortBreakTime,
     longBreakTime, setLongBreakTime,
-    themeColor, setThemeColor,
-    pomodorosUntilLongBreak, setPomodorosUntilLongBreak,
     autoStartBreak, setAutoStartBreak,
     autoStartPomodoro, setAutoStartPomodoro,
-    dailyGoal, setDailyGoal
+    longBreakInterval, setLongBreakInterval,
+    themes, currentTheme, setCurrentTheme,
+    isSoundEnabled, setIsSoundEnabled,
+    showParticles, setShowParticles,
+    language, setLanguage, t
   } = useContext(TimerContext);
 
-  const colors = ['#C0A062', '#e74c3c', '#3498db', '#2ecc71', '#9b59b6', '#1abc9c', '#f1c40f', '#e67e22'];
+  const languages = [
+    { code: 'en', label: 'English', flag: '🇺🇸' },
+    { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
+    { code: 'ar', label: 'العربية', flag: '🇦🇪' },
+    { code: 'es', label: 'Español', flag: '🇪🇸' },
+    { code: 'ru', label: 'Русский', flag: '🇷🇺' },
+    { code: 'id', label: 'Indonesia', flag: '🇮🇩' },
+    { code: 'fr', label: 'Français', flag: '🇫🇷' },
+    { code: 'hi', label: 'हिन्दी', flag: '🇮🇳' },
+    { code: 'ko', label: '한국어', flag: '🇰🇷' },
+    { code: 'fa', label: 'فارسی', flag: '🇮🇷' },
+    { code: 'de', label: 'Deutsch', flag: '🇩🇪' }
+  ];
 
-  const DurationCard = ({ label, value, setter }) => (
-    <View style={styles.card}>
-      <Text style={styles.cardLabel}>{label}</Text>
-      <View style={styles.cardControls}>
-        <TouchableOpacity onPress={() => value > 1 && setter(value - 1)}>
-          <Ionicons name="remove" size={20} color="#888" />
-        </TouchableOpacity>
-        <Text style={[styles.cardValue, { color: themeColor }]}>{value}</Text>
-        <TouchableOpacity onPress={() => setter(value + 1)}>
-          <Ionicons name="add" size={20} color="#888" />
-        </TouchableOpacity>
+  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const currentLang = languages.find(l => l.code === language) || languages[0];
+
+  const SettingSection = ({ title, icon, children }) => (
+    <View style={styles.sectionContainer}>
+      <View style={styles.sectionHeader}>
+        <Ionicons name={icon} size={18} color={currentTheme.accent} style={{ marginRight: 8 }} />
+        <Text style={[styles.sectionTitle, { color: currentTheme.accent, fontFamily: currentTheme.font }]}>{title.toUpperCase()}</Text>
+      </View>
+      <View style={[styles.sectionContent, { backgroundColor: currentTheme.secondary + '15', borderColor: currentTheme.secondary + '30' }]}>
+        {children}
       </View>
     </View>
   );
 
+  const SettingRow = ({ label, value, onToggle, type = 'switch', setter }) => (
+    <View style={[styles.row, { borderBottomColor: currentTheme.secondary + '20' }]}>
+      <Text style={[styles.label, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{label}</Text>
+      {type === 'switch' ? (
+        <Switch
+          value={value}
+          onValueChange={onToggle}
+          trackColor={{ false: "#555", true: currentTheme.accent }}
+          thumbColor={value ? "#fff" : "#f4f3f4"}
+        />
+      ) : (
+        <View style={styles.counterContainer}>
+          <TouchableOpacity onPress={() => setter(Math.max(1, value - 1))} style={[styles.counterBtn, { backgroundColor: currentTheme.secondary }]}>
+            <Ionicons name="remove" size={16} />
+          </TouchableOpacity>
+          <Text style={[styles.valueText, { color: currentTheme.text }]}>{value}</Text>
+          <TouchableOpacity onPress={() => setter(value + 1)} style={[styles.counterBtn, { backgroundColor: currentTheme.secondary }]}>
+            <Ionicons name="add" size={16} />
+          </TouchableOpacity>
+        </View>
+      )}
+    </View>
+  );
+
   return (
-    <View style={styles.container}>
+    <View style={[styles.container, { backgroundColor: currentTheme.bg }]}>
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.goBack()}>
-          <Ionicons name="close" size={28} color="#FFF" />
+        <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
+          <Ionicons name="arrow-back" size={28} color={currentTheme.text} />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>AYARLAR</Text>
-        <View style={{width:28}} />
+        <Text style={[styles.headerTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('settings')}</Text>
+        <View style={{ width: 28 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.scrollContent}>
-        
-        {/* SÜRELER */}
-        <Text style={styles.sectionTitle}>SÜRELER (DK)</Text>
-        <View style={styles.grid}>
-          <DurationCard label="Pomodoro" value={workTime} setter={setWorkTime} />
-          <DurationCard label="Kısa Mola" value={shortBreakTime} setter={setShortBreakTime} />
-          <DurationCard label="Uzun Mola" value={longBreakTime} setter={setLongBreakTime} />
-        </View>
+      <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
-        {/* RENK TEMALARI */}
-        <Text style={styles.sectionTitle}>RENK TEMASI</Text>
-        <View style={styles.colorGrid}>
-          {colors.map((c) => (
-            <TouchableOpacity 
-              key={c} 
-              style={[styles.colorItem, { backgroundColor: c }, themeColor === c && styles.selectedColor]} 
-              onPress={() => setThemeColor(c)}
-            >
-              {themeColor === c && <Ionicons name="checkmark" size={20} color="#FFF" />}
-            </TouchableOpacity>
-          ))}
-        </View>
+        {/* YENİ: UYGULAMA AYARLARI */}
+        <SettingSection title={t('appSettings')} icon="options-outline">
+          <SettingRow label={t('soundEffects')} value={isSoundEnabled} onToggle={setIsSoundEnabled} />
+          <SettingRow label={t('bgEffects')} value={showParticles} onToggle={setShowParticles} />
 
-        {/* DİĞER TERCİHLER */}
-        <Text style={styles.sectionTitle}>DİĞER TERCİHLER</Text>
-        
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Uzun Mola İçin Pomodoro Sayısı</Text>
-          <View style={styles.stepper}>
-            <TouchableOpacity onPress={() => pomodorosUntilLongBreak > 1 && setPomodorosUntilLongBreak(p => p-1)}>
-               <Ionicons name="remove-circle" size={24} color="#555" />
-            </TouchableOpacity>
-            <Text style={styles.stepperValue}>{pomodorosUntilLongBreak}</Text>
-            <TouchableOpacity onPress={() => setPomodorosUntilLongBreak(p => p+1)}>
-               <Ionicons name="add-circle" size={24} color="#555" />
-            </TouchableOpacity>
+          {/* Language Selector Trigger */}
+          <TouchableOpacity
+            style={[styles.row, { borderBottomColor: currentTheme.secondary + '20' }]}
+            onPress={() => setLanguageModalVisible(true)}
+          >
+            <Text style={[styles.label, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('language')}</Text>
+            <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
+              <Text style={{ fontSize: 18 }}>{currentLang.flag}</Text>
+              <Text style={{ color: currentTheme.text, opacity: 0.7, fontSize: 14 }}>{currentLang.label}</Text>
+              <Ionicons name="chevron-forward" size={16} color={currentTheme.text} style={{ opacity: 0.5 }} />
+            </View>
+          </TouchableOpacity>
+        </SettingSection>
+
+        {/* Language Modal */}
+        <Modal animationType="fade" transparent={true} visible={languageModalVisible} onRequestClose={() => setLanguageModalVisible(false)}>
+          <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLanguageModalVisible(false)}>
+            <View style={[styles.modalContent, { backgroundColor: currentTheme.bg, borderColor: currentTheme.accent, shadowColor: currentTheme.accent }]}>
+              <Text style={[styles.modalTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('language')}</Text>
+              <FlatList
+                data={languages}
+                keyExtractor={item => item.code}
+                renderItem={({ item }) => (
+                  <TouchableOpacity
+                    onPress={() => { setLanguage(item.code); setLanguageModalVisible(false); }}
+                    style={[styles.langOption, { backgroundColor: language === item.code ? currentTheme.accent + '20' : 'transparent' }]}
+                  >
+                    <Text style={{ fontSize: 20 }}>{item.flag}</Text>
+                    <Text style={{ color: currentTheme.text, fontSize: 16, flex: 1, marginLeft: 10, textAlign: 'left', fontWeight: language === item.code ? 'bold' : 'normal' }}>
+                      {item.label}
+                    </Text>
+                    {language === item.code && <Ionicons name="checkmark" size={20} color={currentTheme.accent} />}
+                  </TouchableOpacity>
+                )}
+                ItemSeparatorComponent={() => <View style={{ height: 1, backgroundColor: currentTheme.secondary + '20' }} />}
+              />
+            </View>
+          </TouchableOpacity>
+        </Modal>
+
+        <SettingSection title={t('timerSettings')} icon="timer-outline">
+          <SettingRow label={t('focusTime')} value={workTime} type="number" setter={setWorkTime} />
+          <SettingRow label={t('shortBreakTime')} value={shortBreakTime} type="number" setter={setShortBreakTime} />
+          <SettingRow label={t('longBreakTime')} value={longBreakTime} type="number" setter={setLongBreakTime} />
+        </SettingSection>
+
+        <SettingSection title={t('automation')} icon="construct-outline">
+          <SettingRow label={t('autoStartBreak')} value={autoStartBreak} onToggle={setAutoStartBreak} />
+          <SettingRow label={t('autoStartFocus')} value={autoStartPomodoro} onToggle={setAutoStartPomodoro} />
+          <SettingRow label={t('longBreakInterval')} value={longBreakInterval} type="number" setter={setLongBreakInterval} />
+        </SettingSection>
+
+        <View style={styles.sectionContainer}>
+          <View style={styles.sectionHeader}>
+            <Ionicons name="color-palette-outline" size={18} color={currentTheme.accent} style={{ marginRight: 8 }} />
+            <Text style={[styles.sectionTitle, { color: currentTheme.accent, fontFamily: currentTheme.font }]}>{t('themes')}</Text>
+          </View>
+          <View style={styles.themeGrid}>
+            {themes.map((theme) => (
+              <TouchableOpacity
+                key={theme.id} activeOpacity={0.8}
+                style={[styles.themeBox, {
+                  backgroundColor: theme.bg, borderColor: currentTheme.id === theme.id ? theme.accent : theme.secondary,
+                  borderWidth: currentTheme.id === theme.id ? 2 : 1
+                }]}
+                onPress={() => setCurrentTheme(theme)}
+              >
+                <View style={[styles.colorPreview, { backgroundColor: theme.accent }]} />
+                <Text style={[styles.themeName, { color: theme.text, fontFamily: theme.font }]} numberOfLines={1}>{theme.name}</Text>
+                {currentTheme.id === theme.id && <View style={styles.activeBadge}><Ionicons name="checkmark-circle" size={18} color={theme.accent} /></View>}
+              </TouchableOpacity>
+            ))}
           </View>
         </View>
-
-        <View style={styles.row}>
-          <Text style={styles.rowLabel}>Günlük Hedef (Oturum)</Text>
-          <View style={styles.stepper}>
-            <TouchableOpacity onPress={() => dailyGoal > 1 && setDailyGoal(p => p-1)}>
-               <Ionicons name="remove-circle" size={24} color="#555" />
-            </TouchableOpacity>
-            <Text style={styles.stepperValue}>{dailyGoal}</Text>
-            <TouchableOpacity onPress={() => setDailyGoal(p => p+1)}>
-               <Ionicons name="add-circle" size={24} color="#555" />
-            </TouchableOpacity>
-          </View>
-        </View>
-
-        <View style={styles.switchRow}>
-          <Text style={styles.rowLabel}>Molaları Otomatik Başlat</Text>
-          <Switch 
-            value={autoStartBreak} 
-            onValueChange={setAutoStartBreak}
-            trackColor={{ false: "#333", true: themeColor }}
-            thumbColor={autoStartBreak ? "#fff" : "#f4f3f4"}
-          />
-        </View>
-
-        <View style={styles.switchRow}>
-          <Text style={styles.rowLabel}>Pomodoro'ları Otomatik Başlat</Text>
-          <Switch 
-            value={autoStartPomodoro} 
-            onValueChange={setAutoStartPomodoro}
-            trackColor={{ false: "#333", true: themeColor }}
-            thumbColor={autoStartPomodoro ? "#fff" : "#f4f3f4"}
-          />
-        </View>
-
+        <View style={{ height: 40 }} />
       </ScrollView>
     </View>
   );
 };
 
 const styles = StyleSheet.create({
-  container: {
-    flex: 1,
-    backgroundColor: '#121212',
-  },
-  header: {
-    paddingTop: 50,
-    paddingBottom: 20,
-    paddingHorizontal: 20,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    backgroundColor: '#1E1E1E',
-  },
-  headerTitle: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  },
-  scrollContent: {
-    padding: 20,
-  },
-  sectionTitle: {
-    color: '#888',
-    fontSize: 12,
-    fontWeight: 'bold',
-    marginBottom: 15,
-    marginTop: 10,
-    letterSpacing: 1,
-  },
-  grid: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    marginBottom: 20,
-  },
-  card: {
-    backgroundColor: '#1E1E1E',
-    width: '31%',
-    padding: 10,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  cardLabel: {
-    color: '#888',
-    fontSize: 10,
-    marginBottom: 5,
-  },
-  cardValue: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    marginHorizontal: 10,
-  },
-  cardControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  colorGrid: {
-    flexDirection: 'row',
-    flexWrap: 'wrap',
-    gap: 10,
-    marginBottom: 30,
-  },
-  colorItem: {
-    width: 45,
-    height: 45,
-    borderRadius: 8,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  selectedColor: {
-    borderWidth: 2,
-    borderColor: '#FFF',
-  },
-  row: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-    backgroundColor: '#1E1E1E',
-    padding: 15,
-    borderRadius: 10,
-  },
-  switchRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 10,
-    backgroundColor: '#1E1E1E',
-    padding: 15,
-    borderRadius: 10,
-  },
-  rowLabel: {
-    color: '#FFF',
-    fontSize: 14,
-  },
-  stepper: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 10,
-  },
-  stepperValue: {
-    color: '#FFF',
-    fontSize: 18,
-    fontWeight: 'bold',
-  }
+  container: { flex: 1 },
+  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 50, paddingBottom: 10 },
+  headerTitle: { fontSize: 18, fontWeight: 'bold', letterSpacing: 1 },
+  scrollContent: { padding: 20 },
+  sectionContainer: { marginBottom: 25 },
+  sectionHeader: { flexDirection: 'row', alignItems: 'center', marginBottom: 10, paddingLeft: 5 },
+  sectionTitle: { fontSize: 13, fontWeight: 'bold', letterSpacing: 1 },
+  sectionContent: { borderRadius: 16, overflow: 'hidden', borderWidth: 1 },
+  row: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: 'rgba(255,255,255,0.05)' },
+  label: { fontSize: 15 },
+  counterContainer: { flexDirection: 'row', alignItems: 'center', gap: 12 },
+  counterBtn: { width: 32, height: 32, borderRadius: 8, justifyContent: 'center', alignItems: 'center' },
+  valueText: { fontSize: 16, fontWeight: 'bold', minWidth: 20, textAlign: 'center' },
+  themeGrid: { flexDirection: 'row', flexWrap: 'wrap', justifyContent: 'space-between', gap: 12 },
+  themeBox: { width: '30%', aspectRatio: 1, borderRadius: 12, justifyContent: 'center', alignItems: 'center', padding: 5, position: 'relative' },
+  colorPreview: { width: 24, height: 24, borderRadius: 12, marginBottom: 8 },
+  themeName: { fontSize: 10, textAlign: 'center', fontWeight: 'bold' },
+  activeBadge: { position: 'absolute', top: 5, right: 5 },
+  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
+  modalContent: { width: '85%', maxWidth: 340, maxHeight: '50%', borderRadius: 20, borderWidth: 1, padding: 20, elevation: 10 },
+  modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
+  langOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 10, borderRadius: 8 }
 });
 
 export default SettingsScreen;
