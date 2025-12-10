@@ -33,15 +33,27 @@ jobs:
 
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
+        with:
+          api-level: 34
+          build-tools: 34.0.0
 
       - name: Install dependencies
         run: npm ci
 
+      - name: Generate Android project (if needed)
+        run: |
+          if [ ! -d "android" ]; then
+            echo "Android folder not found, running prebuild..."
+            npx expo prebuild --platform android
+          else
+            echo "Android folder exists, skipping prebuild"
+          fi
+
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
       - name: Build release APK
-        run: npm run release
-        env:
-          ANDROID_HOME: ${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}
-          PATH: ${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}/platform-tools:${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}/tools:${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}/tools/bin:${{ env.PATH }}
+        run: npx expo run:android --variant release
 
       - name: Find APK file
         id: find_apk
