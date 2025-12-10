@@ -40,20 +40,15 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Generate Android project (if needed)
-        run: |
-          if [ ! -d "android" ]; then
-            echo "Android folder not found, running prebuild..."
-            npx expo prebuild --platform android
-          else
-            echo "Android folder exists, skipping prebuild"
-          fi
+      - name: Generate Android project
+        run: npm run prebuild
 
       - name: Make gradlew executable
         run: chmod +x android/gradlew
 
       - name: Build release APK
-        run: npx expo run:android --variant release
+        run: ./gradlew assembleRelease
+        working-directory: android
 
       - name: Find APK file
         id: find_apk
