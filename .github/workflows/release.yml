@@ -1,0 +1,67 @@
+name: Build and Release APK
+
+on:
+  workflow_dispatch:  # Allows manual triggering
+  push:
+    branches:
+      - main
+      - master
+  pull_request:
+    branches:
+      - main
+      - master
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      - name: Setup Android SDK
+        uses: android-actions/setup-android@v3
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Build release APK
+        run: npm run release
+        env:
+          ANDROID_HOME: ${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}
+          PATH: ${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}/platform-tools:${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}/tools:${{ secrets.ANDROID_HOME || '/usr/local/lib/android/sdk' }}/tools/bin:${{ env.PATH }}
+
+      - name: Find APK file
+        id: find_apk
+        run: |
+          APK_PATH=$(find android/app/build/outputs/apk/release -name "*.apk" | head -n 1)
+          if [ -z "$APK_PATH" ]; then
+            echo "APK not found in expected location. Searching..."
+            APK_PATH=$(find android -name "*.apk" -type f | head -n 1)
+          fi
+          if [ -z "$APK_PATH" ]; then
+            echo "Error: APK file not found!"
+            exit 1
+          fi
+          echo "APK found at: $APK_PATH"
+          echo "apk_path=$APK_PATH" >> $GITHUB_OUTPUT
+
+      - name: Upload APK artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-apk
+          path: ${{ steps.find_apk.outputs.apk_path }}
+          retention-days: 90
+
