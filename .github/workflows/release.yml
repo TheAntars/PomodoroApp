@@ -25,54 +25,17 @@ jobs:
           node-version: "20"
           cache: "npm"
 
-      - name: Cache node_modules
-        uses: actions/cache@v4
-        with:
-          path: node_modules
-          key: ${{ runner.os }}-node-modules-${{ hashFiles('**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-node-modules-
-
       - name: Setup Java JDK
         uses: actions/setup-java@v4
         with:
           distribution: "temurin"
           java-version: "17"
 
-      - name: Cache Android SDK
-        uses: actions/cache@v4
-        id: android-sdk-cache
-        with:
-          path: |
-            ~/.android
-            ~/Android/Sdk
-          key: ${{ runner.os }}-android-sdk-34-34.0.0
-          restore-keys: |
-            ${{ runner.os }}-android-sdk-
-
       - name: Setup Android SDK
         uses: android-actions/setup-android@v3
         with:
           api-level: 34
           build-tools: 34.0.0
-
-      - name: Cache Gradle dependencies
-        uses: actions/cache@v4
-        with:
-          path: |
-            ~/.gradle/caches
-            ~/.gradle/wrapper
-          key: ${{ runner.os }}-gradle-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-
-
-      - name: Cache Gradle build cache
-        uses: actions/cache@v4
-        with:
-          path: android/.gradle
-          key: ${{ runner.os }}-gradle-build-${{ hashFiles('**/*.gradle*', '**/gradle-wrapper.properties', '**/package-lock.json') }}
-          restore-keys: |
-            ${{ runner.os }}-gradle-build-
 
       - name: Install dependencies
         run: npm ci
@@ -84,10 +47,8 @@ jobs:
         run: chmod +x android/gradlew
 
       - name: Build release APK
-        run: ./gradlew assembleRelease --build-cache
+        run: ./gradlew assembleRelease
         working-directory: android
-        env:
-          GRADLE_OPTS: "-Dorg.gradle.caching=true -Dorg.gradle.parallel=true -Dorg.gradle.configureondemand=true"
 
       - name: Find APK file
         id: find_apk
