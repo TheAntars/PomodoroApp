@@ -1,32 +1,61 @@
-import React, { useState, useEffect, useContext, useRef } from 'react';
-import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Animated, Easing, Vibration, Modal, FlatList } from 'react-native';
-import { useNavigation } from '@react-navigation/native';
-import { StackNavigationProp } from '@react-navigation/stack';
-import { Ionicons } from '@expo/vector-icons';
-import { TimerContext } from '../context/TimerContext';
-import Svg, { Circle } from 'react-native-svg';
-import BackgroundParticles from '../components/BackgroundParticles';
-import { RootStackParamList } from '../navigation/AppNavigator';
-import { Preset } from '../context/TimerContext';
+import React, {
+  useState,
+  useEffect,
+  useContext,
+  useRef,
+  useCallback,
+} from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  TouchableOpacity,
+  useWindowDimensions,
+  Animated,
+  Easing,
+  Vibration,
+  Modal,
+  FlatList,
+} from "react-native";
+import { useNavigation } from "@react-navigation/native";
+import { StackNavigationProp } from "@react-navigation/stack";
+import { Ionicons } from "@expo/vector-icons";
+import { TimerContext, Preset } from "../context/TimerContext";
+import Svg, { Circle } from "react-native-svg";
+import BackgroundParticles from "../components/BackgroundParticles";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
-type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, "Home">;
 
 const HomeScreen = () => {
   const navigation = useNavigation<HomeScreenNavigationProp>();
   const { width } = useWindowDimensions();
   const context = useContext(TimerContext);
-  
+
   if (!context) {
-    throw new Error('HomeScreen must be used within TimerProvider');
+    throw new Error("HomeScreen must be used within TimerProvider");
   }
 
   const {
-    currentTheme, workTime, shortBreakTime, longBreakTime,
-    addToHistory, autoStartBreak, autoStartPomodoro, longBreakInterval,
-    setWorkTime, setShortBreakTime, setLongBreakTime, presets,
-    playSound, sendNotification, showParticles, t, language
+    currentTheme,
+    workTime,
+    shortBreakTime,
+    longBreakTime,
+    addToHistory,
+    autoStartBreak,
+    autoStartPomodoro,
+    longBreakInterval,
+    setWorkTime,
+    setShortBreakTime,
+    setLongBreakTime,
+    presets,
+    playSound,
+    sendNotification,
+    showParticles,
+    t,
+    language,
   } = context;
 
   const containerWidth = width > 450 ? 375 : width;
@@ -34,11 +63,11 @@ const HomeScreen = () => {
   const [modalVisible, setModalVisible] = useState<boolean>(false);
   const [quote, setQuote] = useState<string>("");
 
-  type TimerMode = 'Focus' | 'ShortBreak' | 'LongBreak';
+  type TimerMode = "Focus" | "ShortBreak" | "LongBreak";
 
   // Quote Rotation Logic
   useEffect(() => {
-    const quotes = t('quotes');
+    const quotes = t("quotes");
     if (quotes && Array.isArray(quotes)) {
       const quotesArray = quotes as string[];
       setQuote(quotesArray[Math.floor(Math.random() * quotesArray.length)]);
@@ -49,12 +78,12 @@ const HomeScreen = () => {
     }
   }, [language, t]);
 
-  const STROKE_WIDTH = currentTheme.id === 'MINECRAFT' ? 22 : 15;
+  const STROKE_WIDTH = currentTheme.id === "MINECRAFT" ? 22 : 15;
   const RADIUS = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
   // State
-  const [mode, setMode] = useState<TimerMode>('Focus');
+  const [mode, setMode] = useState<TimerMode>("Focus");
   const [timeLeft, setTimeLeft] = useState<number>(workTime * 60);
   const [isActive, setIsActive] = useState<boolean>(false);
   const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(0);
@@ -64,18 +93,21 @@ const HomeScreen = () => {
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Helpers
-  const getTotalTimeInSeconds = (currentMode: TimerMode): number => {
-    if (currentMode === 'Focus') return workTime * 60;
-    if (currentMode === 'ShortBreak') return shortBreakTime * 60;
-    return longBreakTime * 60;
-  };
+  const getTotalTimeInSeconds = useCallback(
+    (currentMode: TimerMode): number => {
+      if (currentMode === "Focus") return workTime * 60;
+      if (currentMode === "ShortBreak") return shortBreakTime * 60;
+      return longBreakTime * 60;
+    },
+    [workTime, shortBreakTime, longBreakTime],
+  );
 
   const getContrastColor = (hex: string): string => {
     const r = parseInt(hex.substr(1, 2), 16);
     const g = parseInt(hex.substr(3, 2), 16);
     const b = parseInt(hex.substr(5, 2), 16);
-    const yiq = ((r * 299) + (g * 587) + (b * 114)) / 1000;
-    return yiq >= 128 ? '#000000' : '#FFFFFF';
+    const yiq = (r * 299 + g * 587 + b * 114) / 1000;
+    return yiq >= 128 ? "#000000" : "#FFFFFF";
   };
 
   // Ayarlar değişince zamanı güncelle (Eğer çalışmıyorsa)
@@ -83,14 +115,21 @@ const HomeScreen = () => {
     if (!isActive) {
       setTimeLeft(getTotalTimeInSeconds(mode));
     }
-  }, [workTime, shortBreakTime, longBreakTime, isActive, mode]);
+  }, [
+    workTime,
+    shortBreakTime,
+    longBreakTime,
+    isActive,
+    mode,
+    getTotalTimeInSeconds,
+  ]);
 
   // TIMER LOGIC (CRITICAL FIX)
   // Refs for stable access in intervals
   const timeLeftRef = useRef<number>(timeLeft);
   const handleCompleteRef = useRef<(() => Promise<void>) | null>(null);
 
-  const handleComplete = async (): Promise<void> => {
+  const handleComplete = useCallback(async (): Promise<void> => {
     // 1. Stop everything immediately
     setIsActive(false);
     pulseAnim.stopAnimation();
@@ -99,10 +138,13 @@ const HomeScreen = () => {
     // 2. Play effects (Non-blocking)
     try {
       await playSound();
-      const timeUpText = t('timeUp') as string;
-      const breakTimeText = t('breakTime') as string;
-      const backToWorkText = t('backToWork') as string;
-      await sendNotification(timeUpText, mode === 'Focus' ? breakTimeText : backToWorkText);
+      const timeUpText = t("timeUp") as string;
+      const breakTimeText = t("breakTime") as string;
+      const backToWorkText = t("backToWork") as string;
+      await sendNotification(
+        timeUpText,
+        mode === "Focus" ? breakTimeText : backToWorkText,
+      );
       Vibration.vibrate([0, 500, 200, 500]);
     } catch (error) {
       console.log("Effect error:", error);
@@ -112,16 +154,17 @@ const HomeScreen = () => {
     addToHistory(mode, getTotalTimeInSeconds(mode));
 
     // Mod Değiştirme Mantığı
-    let nextMode: TimerMode = 'Focus';
+    let nextMode: TimerMode = "Focus";
     let shouldAutoStart = false;
 
-    if (mode === 'Focus') {
+    if (mode === "Focus") {
       const newCompleted = pomodorosCompleted + 1;
       setPomodorosCompleted(newCompleted);
-      nextMode = (newCompleted % longBreakInterval === 0) ? 'LongBreak' : 'ShortBreak';
+      nextMode =
+        newCompleted % longBreakInterval === 0 ? "LongBreak" : "ShortBreak";
       shouldAutoStart = autoStartBreak;
     } else {
-      nextMode = 'Focus';
+      nextMode = "Focus";
       shouldAutoStart = autoStartPomodoro;
     }
 
@@ -137,7 +180,20 @@ const HomeScreen = () => {
     if (shouldAutoStart) {
       setTimeout(() => setIsActive(true), 500);
     }
-  };
+  }, [
+    mode,
+    pomodorosCompleted,
+    longBreakInterval,
+    autoStartBreak,
+    autoStartPomodoro,
+    playSound,
+    sendNotification,
+    addToHistory,
+    getTotalTimeInSeconds,
+    t,
+    pulseAnim,
+    animatedValue,
+  ]);
 
   // Update refs
   useEffect(() => {
@@ -154,8 +210,7 @@ const HomeScreen = () => {
 
     if (isActive) {
       // Daire Animasyonu Başlat
-      const totalTime = getTotalTimeInSeconds(mode);
-      // Use current timeLeft from ref to avoid stale closure if needed, 
+      // Use current timeLeft from ref to avoid stale closure if needed,
       // but here we just need the start value for animation.
       // Since isActive changed to true, timeLeft is fresh from render.
 
@@ -163,7 +218,7 @@ const HomeScreen = () => {
         toValue: 0,
         duration: timeLeft * 1000,
         easing: Easing.linear,
-        useNativeDriver: false
+        useNativeDriver: false,
       }).start();
 
       // Sayaç Döngüsü
@@ -177,7 +232,6 @@ const HomeScreen = () => {
           return prev - 1;
         });
       }, 1000);
-
     } else {
       if (interval) clearInterval(interval);
       animatedValue.stopAnimation();
@@ -190,16 +244,31 @@ const HomeScreen = () => {
     return () => {
       if (interval) clearInterval(interval);
     };
-  }, [isActive, mode, animatedValue]);
+  }, [
+    isActive,
+    mode,
+    animatedValue,
+    timeLeft,
+    getTotalTimeInSeconds,
+    handleCompleteRef,
+  ]);
 
   // Separate effect for pulse animation near end
   useEffect(() => {
     if (isActive && timeLeft <= 6 && timeLeft > 0) {
       Animated.loop(
         Animated.sequence([
-          Animated.timing(pulseAnim, { toValue: 1.1, duration: 500, useNativeDriver: true }),
-          Animated.timing(pulseAnim, { toValue: 1, duration: 500, useNativeDriver: true })
-        ])
+          Animated.timing(pulseAnim, {
+            toValue: 1.1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+          Animated.timing(pulseAnim, {
+            toValue: 1,
+            duration: 500,
+            useNativeDriver: true,
+          }),
+        ]),
       ).start();
     } else if (!isActive || timeLeft > 6) {
       pulseAnim.stopAnimation();
@@ -227,7 +296,7 @@ const HomeScreen = () => {
     setLongBreakTime(preset.long);
     setModalVisible(false);
 
-    setMode('Focus');
+    setMode("Focus");
     setIsActive(false);
     setTimeLeft(preset.work * 60);
     animatedValue.setValue(1);
@@ -238,29 +307,56 @@ const HomeScreen = () => {
     outputRange: [CIRCUMFERENCE, 0],
   });
 
-  const formatTime = (s: number): string => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  const formatTime = (s: number): string =>
+    `${Math.floor(s / 60)
+      .toString()
+      .padStart(2, "0")}:${(s % 60).toString().padStart(2, "0")}`;
 
   return (
     <View style={[styles.container, { backgroundColor: currentTheme.bg }]}>
-      <BackgroundParticles color={currentTheme.accent} enabled={showParticles} />
+      <BackgroundParticles
+        color={currentTheme.accent}
+        enabled={showParticles}
+      />
 
       {/* HEADER */}
       <View style={styles.header}>
-        <TouchableOpacity onPress={() => navigation.navigate('Settings')} style={styles.iconBox}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Settings")}
+          style={styles.iconBox}
+        >
           <Ionicons name="settings-sharp" size={24} color={currentTheme.text} />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => setModalVisible(true)} style={{ alignItems: 'center', flexDirection: 'row', gap: 5 }}>
-          <View style={{ alignItems: 'center' }}>
-            <Text style={[styles.headerTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>
+        <TouchableOpacity
+          onPress={() => setModalVisible(true)}
+          style={{ alignItems: "center", flexDirection: "row", gap: 5 }}
+        >
+          <View style={{ alignItems: "center" }}>
+            <Text
+              style={[
+                styles.headerTitle,
+                { color: currentTheme.text, fontFamily: currentTheme.font },
+              ]}
+            >
               {currentTheme.name.toUpperCase()}
             </Text>
-            <Text style={{ color: currentTheme.text, fontSize: 10, opacity: 0.6 }}>
-              {pomodorosCompleted} / {longBreakInterval} {t('cycle') as string}
+            <Text
+              style={{ color: currentTheme.text, fontSize: 10, opacity: 0.6 }}
+            >
+              {pomodorosCompleted} / {longBreakInterval} {t("cycle") as string}
             </Text>
           </View>
-          <Ionicons name="chevron-down" size={16} color={currentTheme.text} style={{ opacity: 0.7 }} />
+          <Ionicons
+            name="chevron-down"
+            size={16}
+            color={currentTheme.text}
+            style={{ opacity: 0.7 }}
+          />
         </TouchableOpacity>
-        <TouchableOpacity onPress={() => navigation.navigate('Stats')} style={styles.iconBox}>
+        <TouchableOpacity
+          onPress={() => navigation.navigate("Stats")}
+          style={styles.iconBox}
+        >
           <Ionicons name="stats-chart" size={24} color={currentTheme.text} />
         </TouchableOpacity>
       </View>
@@ -268,26 +364,60 @@ const HomeScreen = () => {
       {/* TIMER */}
       <View style={styles.timerContainer}>
         <Svg width={CIRCLE_SIZE} height={CIRCLE_SIZE}>
-          <Circle cx={CIRCLE_SIZE / 2} cy={CIRCLE_SIZE / 2} r={RADIUS} stroke={currentTheme.secondary} strokeWidth={STROKE_WIDTH} fill="transparent" />
+          <Circle
+            cx={CIRCLE_SIZE / 2}
+            cy={CIRCLE_SIZE / 2}
+            r={RADIUS}
+            stroke={currentTheme.secondary}
+            strokeWidth={STROKE_WIDTH}
+            fill="transparent"
+          />
           <AnimatedCircle
-            cx={CIRCLE_SIZE / 2} cy={CIRCLE_SIZE / 2} r={RADIUS}
-            stroke={currentTheme.accent} strokeWidth={STROKE_WIDTH} fill="transparent"
-            strokeDasharray={CIRCUMFERENCE} strokeDashoffset={strokeDashoffset}
-            strokeLinecap={currentTheme.strokeLinecap} rotation="-90" origin={`${CIRCLE_SIZE / 2}, ${CIRCLE_SIZE / 2}`}
+            cx={CIRCLE_SIZE / 2}
+            cy={CIRCLE_SIZE / 2}
+            r={RADIUS}
+            stroke={currentTheme.accent}
+            strokeWidth={STROKE_WIDTH}
+            fill="transparent"
+            strokeDasharray={CIRCUMFERENCE}
+            strokeDashoffset={strokeDashoffset}
+            strokeLinecap={currentTheme.strokeLinecap}
+            rotation="-90"
+            origin={`${CIRCLE_SIZE / 2}, ${CIRCLE_SIZE / 2}`}
           />
         </Svg>
 
         <View style={styles.timerTextContainer}>
-          <Animated.Text style={[
-            styles.timerText,
-            { color: currentTheme.text, fontFamily: currentTheme.font, fontVariant: ['tabular-nums'], transform: [{ scale: pulseAnim }] }
-          ]}>
+          <Animated.Text
+            style={[
+              styles.timerText,
+              {
+                color: currentTheme.text,
+                fontFamily: currentTheme.font,
+                fontVariant: ["tabular-nums"],
+                transform: [{ scale: pulseAnim }],
+              },
+            ]}
+          >
             {formatTime(timeLeft)}
           </Animated.Text>
 
           <TouchableOpacity onPress={() => setModalVisible(true)}>
-            <Text style={[styles.modeText, { color: currentTheme.text, opacity: 0.7, fontFamily: currentTheme.font }]}>
-              {mode === 'Focus' ? t('focus') as string : (mode === 'ShortBreak' ? t('shortBreak') as string : t('longBreak') as string)}
+            <Text
+              style={[
+                styles.modeText,
+                {
+                  color: currentTheme.text,
+                  opacity: 0.7,
+                  fontFamily: currentTheme.font,
+                },
+              ]}
+            >
+              {mode === "Focus"
+                ? (t("focus") as string)
+                : mode === "ShortBreak"
+                  ? (t("shortBreak") as string)
+                  : (t("longBreak") as string)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -296,46 +426,109 @@ const HomeScreen = () => {
       {/* CONTROLS */}
       <View style={styles.controls}>
         <TouchableOpacity
-          onPress={toggleTimer} activeOpacity={0.7}
-          style={[styles.mainBtn, {
-            backgroundColor: currentTheme.accent, borderRadius: currentTheme.borderRadius,
-            borderWidth: currentTheme.borderWidth, borderColor: currentTheme.borderColor,
-            shadowColor: currentTheme.accent, shadowOpacity: 0.4, shadowRadius: 10, elevation: 8
-          }]}
+          onPress={toggleTimer}
+          activeOpacity={0.7}
+          style={[
+            styles.mainBtn,
+            {
+              backgroundColor: currentTheme.accent,
+              borderRadius: currentTheme.borderRadius,
+              borderWidth: currentTheme.borderWidth,
+              borderColor: currentTheme.borderColor,
+              shadowColor: currentTheme.accent,
+              shadowOpacity: 0.4,
+              shadowRadius: 10,
+              elevation: 8,
+            },
+          ]}
         >
-          <Ionicons name={isActive ? "pause" : "play"} size={45} color={getContrastColor(currentTheme.accent)} />
+          <Ionicons
+            name={isActive ? "pause" : "play"}
+            size={45}
+            color={getContrastColor(currentTheme.accent)}
+          />
         </TouchableOpacity>
 
         <TouchableOpacity
-          onPress={handleReset} activeOpacity={0.7}
-          style={[styles.subBtn, { backgroundColor: currentTheme.secondary, borderRadius: currentTheme.borderRadius }]}
+          onPress={handleReset}
+          activeOpacity={0.7}
+          style={[
+            styles.subBtn,
+            {
+              backgroundColor: currentTheme.secondary,
+              borderRadius: currentTheme.borderRadius,
+            },
+          ]}
         >
-          <Ionicons name="refresh" size={24} color={getContrastColor(currentTheme.secondary)} />
+          <Ionicons
+            name="refresh"
+            size={24}
+            color={getContrastColor(currentTheme.secondary)}
+          />
         </TouchableOpacity>
       </View>
 
       {/* MOTIVATIONAL QUOTE */}
-      <View style={{ position: 'absolute', bottom: 40, width: '100%', alignItems: 'center', paddingHorizontal: 20 }}>
-        <Text style={{
-          color: currentTheme.text,
-          opacity: 0.6,
-          fontSize: 14,
-          fontStyle: 'italic',
-          textAlign: 'center',
-          fontFamily: currentTheme.font
-        }}>
-          "{quote}"
+      <View
+        style={{
+          position: "absolute",
+          bottom: 40,
+          width: "100%",
+          alignItems: "center",
+          paddingHorizontal: 20,
+        }}
+      >
+        <Text
+          style={{
+            color: currentTheme.text,
+            opacity: 0.6,
+            fontSize: 14,
+            fontStyle: "italic",
+            textAlign: "center",
+            fontFamily: currentTheme.font,
+          }}
+        >
+          &ldquo;{quote}&rdquo;
         </Text>
       </View>
 
       {/* PRESET MODAL (BOTTOM SHEET) */}
-      <Modal animationType="slide" transparent={true} visible={modalVisible} onRequestClose={() => setModalVisible(false)}>
-        <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setModalVisible(false)}>
-          <View style={[styles.bottomSheet, { backgroundColor: currentTheme.bg, shadowColor: currentTheme.accent }]}>
-            <View style={[styles.dragHandle, { backgroundColor: currentTheme.secondary }]} />
+      <Modal
+        animationType="slide"
+        transparent={true}
+        visible={modalVisible}
+        onRequestClose={() => setModalVisible(false)}
+      >
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setModalVisible(false)}
+        >
+          <View
+            style={[
+              styles.bottomSheet,
+              {
+                backgroundColor: currentTheme.bg,
+                shadowColor: currentTheme.accent,
+              },
+            ]}
+          >
+            <View
+              style={[
+                styles.dragHandle,
+                { backgroundColor: currentTheme.secondary },
+              ]}
+            />
 
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('selectMode') as string}</Text>
+              <Text
+                style={[
+                  styles.modalTitle,
+                  { color: currentTheme.text, fontFamily: currentTheme.font },
+                ]}
+              >
+                {t("selectMode") as string}
+              </Text>
             </View>
             <FlatList
               data={presets}
@@ -343,22 +536,66 @@ const HomeScreen = () => {
               renderItem={({ item }) => (
                 <TouchableOpacity
                   onPress={() => applyPreset(item)}
-                  style={[styles.presetRow, {
-                    backgroundColor: currentTheme.secondary + '30', // Slightly more opaque
-                    borderWidth: 1,
-                    borderColor: currentTheme.secondary + '50'
-                  }]}
+                  style={[
+                    styles.presetRow,
+                    {
+                      backgroundColor: currentTheme.secondary + "30", // Slightly more opaque
+                      borderWidth: 1,
+                      borderColor: currentTheme.secondary + "50",
+                    },
+                  ]}
                 >
-                  <View style={{ flexDirection: 'row', alignItems: 'center', gap: 10 }}>
-                    <View style={{ width: 40, height: 40, borderRadius: 20, backgroundColor: currentTheme.accent + '20', justifyContent: 'center', alignItems: 'center' }}>
-                      <Ionicons name="timer-outline" size={20} color={currentTheme.accent} />
+                  <View
+                    style={{
+                      flexDirection: "row",
+                      alignItems: "center",
+                      gap: 10,
+                    }}
+                  >
+                    <View
+                      style={{
+                        width: 40,
+                        height: 40,
+                        borderRadius: 20,
+                        backgroundColor: currentTheme.accent + "20",
+                        justifyContent: "center",
+                        alignItems: "center",
+                      }}
+                    >
+                      <Ionicons
+                        name="timer-outline"
+                        size={20}
+                        color={currentTheme.accent}
+                      />
                     </View>
                     <View>
-                      <Text style={{ color: currentTheme.text, fontWeight: 'bold', fontFamily: currentTheme.font, fontSize: 15 }}>{item.name}</Text>
-                      <Text style={{ color: currentTheme.text, opacity: 0.6, fontSize: 12 }}>{item.work} / {item.short} / {item.long} min</Text>
+                      <Text
+                        style={{
+                          color: currentTheme.text,
+                          fontWeight: "bold",
+                          fontFamily: currentTheme.font,
+                          fontSize: 15,
+                        }}
+                      >
+                        {item.name}
+                      </Text>
+                      <Text
+                        style={{
+                          color: currentTheme.text,
+                          opacity: 0.6,
+                          fontSize: 12,
+                        }}
+                      >
+                        {item.work} / {item.short} / {item.long} min
+                      </Text>
                     </View>
                   </View>
-                  <Ionicons name="chevron-forward" size={20} color={currentTheme.text} style={{ opacity: 0.5 }} />
+                  <Ionicons
+                    name="chevron-forward"
+                    size={20}
+                    color={currentTheme.text}
+                    style={{ opacity: 0.5 }}
+                  />
                 </TouchableOpacity>
               )}
               ItemSeparatorComponent={() => <View style={{ height: 10 }} />}
@@ -371,24 +608,79 @@ const HomeScreen = () => {
 };
 
 const styles = StyleSheet.create({
-  container: { flex: 1, alignItems: 'center', justifyContent: 'space-between', paddingVertical: 40 },
-  header: { flexDirection: 'row', width: '90%', justifyContent: 'space-between', alignItems: 'center', marginTop: 10, zIndex: 10 },
+  container: {
+    flex: 1,
+    alignItems: "center",
+    justifyContent: "space-between",
+    paddingVertical: 40,
+  },
+  header: {
+    flexDirection: "row",
+    width: "90%",
+    justifyContent: "space-between",
+    alignItems: "center",
+    marginTop: 10,
+    zIndex: 10,
+  },
   iconBox: { padding: 10 },
-  headerTitle: { fontSize: 14, fontWeight: 'bold', letterSpacing: 1 },
-  timerContainer: { justifyContent: 'center', alignItems: 'center', position: 'relative' },
-  timerTextContainer: { position: 'absolute', alignItems: 'center' },
-  timerText: { fontSize: 72, fontWeight: 'bold' },
-  modeText: { fontSize: 16, marginTop: 5, letterSpacing: 2, textDecorationLine: 'underline' },
-  controls: { alignItems: 'center', gap: 25, marginBottom: 20, zIndex: 10 },
-  mainBtn: { width: 90, height: 90, justifyContent: 'center', alignItems: 'center' },
+  headerTitle: { fontSize: 14, fontWeight: "bold", letterSpacing: 1 },
+  timerContainer: {
+    justifyContent: "center",
+    alignItems: "center",
+    position: "relative",
+  },
+  timerTextContainer: { position: "absolute", alignItems: "center" },
+  timerText: { fontSize: 72, fontWeight: "bold" },
+  modeText: {
+    fontSize: 16,
+    marginTop: 5,
+    letterSpacing: 2,
+    textDecorationLine: "underline",
+  },
+  controls: { alignItems: "center", gap: 25, marginBottom: 20, zIndex: 10 },
+  mainBtn: {
+    width: 90,
+    height: 90,
+    justifyContent: "center",
+    alignItems: "center",
+  },
   subBtn: { padding: 15 },
-  modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'flex-end' },
-  bottomSheet: { width: '100%', padding: 20, paddingBottom: 40, borderTopLeftRadius: 30, borderTopRightRadius: 30, elevation: 20, maxHeight: '60%' },
-  dragHandle: { width: 40, height: 5, borderRadius: 3, alignSelf: 'center', marginBottom: 20, opacity: 0.5 },
-  modalHeader: { flexDirection: 'row', justifyContent: 'center', alignItems: 'center', marginBottom: 15 },
-  modalTitle: { fontSize: 16, fontWeight: 'bold', letterSpacing: 1 },
-  presetRow: { padding: 16, borderRadius: 16, flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center' }
+  modalOverlay: {
+    flex: 1,
+    backgroundColor: "rgba(0,0,0,0.6)",
+    justifyContent: "flex-end",
+  },
+  bottomSheet: {
+    width: "100%",
+    padding: 20,
+    paddingBottom: 40,
+    borderTopLeftRadius: 30,
+    borderTopRightRadius: 30,
+    elevation: 20,
+    maxHeight: "60%",
+  },
+  dragHandle: {
+    width: 40,
+    height: 5,
+    borderRadius: 3,
+    alignSelf: "center",
+    marginBottom: 20,
+    opacity: 0.5,
+  },
+  modalHeader: {
+    flexDirection: "row",
+    justifyContent: "center",
+    alignItems: "center",
+    marginBottom: 15,
+  },
+  modalTitle: { fontSize: 16, fontWeight: "bold", letterSpacing: 1 },
+  presetRow: {
+    padding: 16,
+    borderRadius: 16,
+    flexDirection: "row",
+    justifyContent: "space-between",
+    alignItems: "center",
+  },
 });
 
 export default HomeScreen;
-

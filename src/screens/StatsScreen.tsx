@@ -1,12 +1,22 @@
-import React, { useContext } from 'react';
-import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensions } from 'react-native';
-import { TimerContext } from '../context/TimerContext';
-import { Ionicons } from '@expo/vector-icons';
+import React, { useContext } from "react";
+import {
+  View,
+  Text,
+  StyleSheet,
+  ScrollView,
+  TouchableOpacity,
+  useWindowDimensions,
+} from "react-native";
+import { TimerContext } from "../context/TimerContext";
+import { Ionicons } from "@expo/vector-icons";
 import { ContributionGraph, BarChart } from "react-native-chart-kit";
-import { StackNavigationProp } from '@react-navigation/stack';
-import { RootStackParamList } from '../navigation/AppNavigator';
+import { StackNavigationProp } from "@react-navigation/stack";
+import { RootStackParamList } from "../navigation/AppNavigator";
 
-type StatsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Stats'>;
+type StatsScreenNavigationProp = StackNavigationProp<
+  RootStackParamList,
+  "Stats"
+>;
 
 interface StatsScreenProps {
   navigation: StatsScreenNavigationProp;
@@ -20,27 +30,36 @@ interface ContributionData {
 const StatsScreen = ({ navigation }: StatsScreenProps) => {
   const { width: screenWidth } = useWindowDimensions();
   const context = useContext(TimerContext);
-  
+
   if (!context) {
-    throw new Error('StatsScreen must be used within TimerProvider');
+    throw new Error("StatsScreen must be used within TimerProvider");
   }
 
   const { history, currentTheme, t } = context;
 
-  const totalFocusMinutes = Math.floor(history.filter(h => h.mode === 'Focus').reduce((acc, curr) => acc + curr.duration, 0) / 60);
+  const totalFocusMinutes = Math.floor(
+    history
+      .filter((h) => h.mode === "Focus")
+      .reduce((acc, curr) => acc + curr.duration, 0) / 60,
+  );
   const totalSessions = history.length;
 
   const getContributionData = (): ContributionData[] => {
     const data: Record<string, number> = {};
-    history.forEach(item => {
-      if (item.mode === 'Focus') {
-        const date = item.date.split('T')[0];
-        if (data[date]) data[date]++; else data[date] = 1;
+    history.forEach((item) => {
+      if (item.mode === "Focus") {
+        const date = item.date.split("T")[0];
+        if (data[date]) data[date]++;
+        else data[date] = 1;
       }
     });
-    const result = Object.keys(data).map(date => ({ date, count: data[date] }));
+    const result = Object.keys(data).map((date) => ({
+      date,
+      count: data[date],
+    }));
     // Eğer veri yoksa boş bir giriş ekle ki grafik bozulmasın
-    if (result.length === 0) return [{ date: new Date().toISOString().split('T')[0], count: 0 }];
+    if (result.length === 0)
+      return [{ date: new Date().toISOString().split("T")[0], count: 0 }];
     return result;
   };
 
@@ -48,29 +67,30 @@ const StatsScreen = ({ navigation }: StatsScreenProps) => {
 
   const getWeeklyData = () => {
     const days = [
-      t('sun') as string, 
-      t('mon') as string, 
-      t('tue') as string, 
-      t('wed') as string, 
-      t('thu') as string, 
-      t('fri') as string, 
-      t('sat') as string
+      t("sun") as string,
+      t("mon") as string,
+      t("tue") as string,
+      t("wed") as string,
+      t("thu") as string,
+      t("fri") as string,
+      t("sat") as string,
     ];
     const data = [0, 0, 0, 0, 0, 0, 0];
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Bugünü sıfırla
 
-    history.forEach(item => {
-      if (item.mode === 'Focus') {
+    history.forEach((item) => {
+      if (item.mode === "Focus") {
         const itemDate = new Date(item.date);
         itemDate.setHours(0, 0, 0, 0); // Kayıt tarihini sıfırla
 
         const diffTime = Math.abs(today.getTime() - itemDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
-        if (diffDays < 7) { // Son 7 gün
+        if (diffDays < 7) {
+          // Son 7 gün
           const dayIndex = itemDate.getDay();
-          data[dayIndex] += (item.duration / 60);
+          data[dayIndex] += item.duration / 60;
         }
       }
     });
@@ -98,27 +118,78 @@ const StatsScreen = ({ navigation }: StatsScreenProps) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color={currentTheme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('stats') as string}</Text>
+        <Text
+          style={[
+            styles.headerTitle,
+            { color: currentTheme.text, fontFamily: currentTheme.font },
+          ]}
+        >
+          {t("stats") as string}
+        </Text>
         <View style={{ width: 28 }} />
       </View>
 
-      <ScrollView contentContainerStyle={styles.content} showsVerticalScrollIndicator={false}>
+      <ScrollView
+        contentContainerStyle={styles.content}
+        showsVerticalScrollIndicator={false}
+      >
         <View style={styles.grid}>
-          <View style={[styles.card, { borderColor: currentTheme.secondary, backgroundColor: currentTheme.secondary + '10' }]}>
-            <Ionicons name="hourglass-outline" size={24} color={currentTheme.accent} style={{ marginBottom: 5 }} />
-            <Text style={[styles.cardVal, { color: currentTheme.text }]}>{totalFocusMinutes}</Text>
-            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>{t('focusTimeStat') as string}</Text>
+          <View
+            style={[
+              styles.card,
+              {
+                borderColor: currentTheme.secondary,
+                backgroundColor: currentTheme.secondary + "10",
+              },
+            ]}
+          >
+            <Ionicons
+              name="hourglass-outline"
+              size={24}
+              color={currentTheme.accent}
+              style={{ marginBottom: 5 }}
+            />
+            <Text style={[styles.cardVal, { color: currentTheme.text }]}>
+              {totalFocusMinutes}
+            </Text>
+            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>
+              {t("focusTimeStat") as string}
+            </Text>
           </View>
-          <View style={[styles.card, { borderColor: currentTheme.secondary, backgroundColor: currentTheme.secondary + '10' }]}>
-            <Ionicons name="checkmark-circle-outline" size={24} color={currentTheme.accent} style={{ marginBottom: 5 }} />
-            <Text style={[styles.cardVal, { color: currentTheme.text }]}>{totalSessions}</Text>
-            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>{t('sessionsStat') as string}</Text>
+          <View
+            style={[
+              styles.card,
+              {
+                borderColor: currentTheme.secondary,
+                backgroundColor: currentTheme.secondary + "10",
+              },
+            ]}
+          >
+            <Ionicons
+              name="checkmark-circle-outline"
+              size={24}
+              color={currentTheme.accent}
+              style={{ marginBottom: 5 }}
+            />
+            <Text style={[styles.cardVal, { color: currentTheme.text }]}>
+              {totalSessions}
+            </Text>
+            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>
+              {t("sessionsStat") as string}
+            </Text>
           </View>
         </View>
 
-        <View style={[styles.chartContainer, { borderColor: currentTheme.secondary + '30' }]}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('focusCalendar') as string}</Text>
-          <View style={{ overflow: 'hidden', marginLeft: -10 }}>
+        <View
+          style={[
+            styles.chartContainer,
+            { borderColor: currentTheme.secondary + "30" },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+            {t("focusCalendar") as string}
+          </Text>
+          <View style={{ overflow: "hidden", marginLeft: -10 }}>
             <ContributionGraph
               values={contributionData}
               endDate={new Date()}
@@ -133,8 +204,15 @@ const StatsScreen = ({ navigation }: StatsScreenProps) => {
           </View>
         </View>
 
-        <View style={[styles.chartContainer, { borderColor: currentTheme.secondary + '30' }]}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('last7Days') as string}</Text>
+        <View
+          style={[
+            styles.chartContainer,
+            { borderColor: currentTheme.secondary + "30" },
+          ]}
+        >
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
+            {t("last7Days") as string}
+          </Text>
           <BarChart
             data={getWeeklyData()}
             width={screenWidth - 60}
@@ -173,16 +251,49 @@ const StatsScreen = ({ navigation }: StatsScreenProps) => {
 
 const styles = StyleSheet.create({
   container: { flex: 1 },
-  header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', padding: 20, paddingTop: 50 },
-  headerTitle: { fontSize: 18, fontWeight: 'bold', letterSpacing: 1 },
+  header: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+    padding: 20,
+    paddingTop: 50,
+  },
+  headerTitle: { fontSize: 18, fontWeight: "bold", letterSpacing: 1 },
   content: { padding: 20, paddingBottom: 50 },
-  grid: { flexDirection: 'row', justifyContent: 'space-between', gap: 15, marginBottom: 25 },
-  card: { flex: 1, padding: 20, borderRadius: 20, borderWidth: 1, alignItems: 'center', justifyContent: 'center' },
-  cardVal: { fontSize: 28, fontWeight: 'bold', marginVertical: 5 },
-  cardLbl: { fontSize: 12, opacity: 0.7, textTransform: 'uppercase', letterSpacing: 1 },
-  sectionTitle: { fontSize: 16, fontWeight: 'bold', marginBottom: 15, letterSpacing: 0.5 },
-  chartContainer: { marginBottom: 25, padding: 15, borderRadius: 20, borderWidth: 1, backgroundColor: 'rgba(0,0,0,0.2)' }
+  grid: {
+    flexDirection: "row",
+    justifyContent: "space-between",
+    gap: 15,
+    marginBottom: 25,
+  },
+  card: {
+    flex: 1,
+    padding: 20,
+    borderRadius: 20,
+    borderWidth: 1,
+    alignItems: "center",
+    justifyContent: "center",
+  },
+  cardVal: { fontSize: 28, fontWeight: "bold", marginVertical: 5 },
+  cardLbl: {
+    fontSize: 12,
+    opacity: 0.7,
+    textTransform: "uppercase",
+    letterSpacing: 1,
+  },
+  sectionTitle: {
+    fontSize: 16,
+    fontWeight: "bold",
+    marginBottom: 15,
+    letterSpacing: 0.5,
+  },
+  chartContainer: {
+    marginBottom: 25,
+    padding: 15,
+    borderRadius: 20,
+    borderWidth: 1,
+    backgroundColor: "rgba(0,0,0,0.2)",
+  },
 });
 
 export default StatsScreen;
-

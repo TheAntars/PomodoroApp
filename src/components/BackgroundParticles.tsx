@@ -1,7 +1,7 @@
-import React, { useEffect, useRef } from 'react';
-import { View, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
+import React, { useEffect, useRef } from "react";
+import { View, Animated, StyleSheet, Dimensions, Easing } from "react-native";
 
-const { width, height } = Dimensions.get('window');
+const { width, height } = Dimensions.get("window");
 const NUM_PARTICLES = 40; // Daha fazla yıldız/parçacık
 
 interface ParticleProps {
@@ -44,8 +44,8 @@ const Particle = ({ color }: ParticleProps) => {
             duration: durationX,
             easing: Easing.linear,
             useNativeDriver: true,
-          })
-        ])
+          }),
+        ]),
       ).start();
 
       Animated.loop(
@@ -61,30 +61,42 @@ const Particle = ({ color }: ParticleProps) => {
             duration: durationY,
             easing: Easing.linear,
             useNativeDriver: true,
-          })
-        ])
+          }),
+        ]),
       ).start();
 
       Animated.loop(
         Animated.sequence([
-          Animated.timing(opacity, { toValue: 0.8, duration: 2000, useNativeDriver: true }),
-          Animated.timing(opacity, { toValue: 0.2, duration: 2000, useNativeDriver: true }),
-        ])
+          Animated.timing(opacity, {
+            toValue: 0.8,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+          Animated.timing(opacity, {
+            toValue: 0.2,
+            duration: 2000,
+            useNativeDriver: true,
+          }),
+        ]),
       ).start();
     };
 
     createAnimation();
-  }, []);
+  }, [opacity, positionX, positionY, scale]);
 
   return (
     <Animated.View
       style={{
-        position: 'absolute',
+        position: "absolute",
         width: 6, // Biraz daha küçük, yıldız gibi
         height: 6,
         borderRadius: 3,
         backgroundColor: color,
-        transform: [{ translateX: positionX }, { translateY: positionY }, { scale }],
+        transform: [
+          { translateX: positionX },
+          { translateY: positionY },
+          { scale },
+        ],
         opacity,
       }}
     />
@@ -109,4 +121,3 @@ const BackgroundParticles = ({ color, enabled }: BackgroundParticlesProps) => {
 };
 
 export default BackgroundParticles;
-
