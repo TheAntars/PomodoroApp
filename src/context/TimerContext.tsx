@@ -1,12 +1,71 @@
-import React, { createContext, useState, useEffect } from 'react';
+import React, { createContext, useState, useEffect, ReactNode } from 'react';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Audio } from 'expo-av';
 import * as Notifications from 'expo-notifications';
 import { translations } from '../constants/translations';
 
-export const TimerContext = createContext();
+export interface Theme {
+  id: string;
+  name: string;
+  bg: string;
+  accent: string;
+  secondary: string;
+  text: string;
+  font: string;
+  strokeLinecap: 'round' | 'square' | 'butt';
+  borderRadius: number;
+  borderWidth: number;
+  borderColor: string;
+}
 
-export const themes = [
+export interface Preset {
+  id: string;
+  name: string;
+  work: number;
+  short: number;
+  long: number;
+}
+
+export interface HistoryEntry {
+  date: string;
+  mode: string;
+  duration: number;
+}
+
+export interface TimerContextType {
+  workTime: number;
+  setWorkTime: (value: number) => void;
+  shortBreakTime: number;
+  setShortBreakTime: (value: number) => void;
+  longBreakTime: number;
+  setLongBreakTime: (value: number) => void;
+  longBreakInterval: number;
+  setLongBreakInterval: (value: number) => void;
+  autoStartBreak: boolean;
+  setAutoStartBreak: (value: boolean) => void;
+  autoStartPomodoro: boolean;
+  setAutoStartPomodoro: (value: boolean) => void;
+  isSoundEnabled: boolean;
+  setIsSoundEnabled: (value: boolean) => void;
+  showParticles: boolean;
+  setShowParticles: (value: boolean) => void;
+  history: HistoryEntry[];
+  addToHistory: (mode: string, durationSeconds: number) => void;
+  themes: Theme[];
+  currentTheme: Theme;
+  setCurrentTheme: (theme: Theme) => void;
+  presets: Preset[];
+  setPresets: (presets: Preset[]) => void;
+  playSound: () => Promise<void>;
+  sendNotification: (title: string, body: string) => Promise<void>;
+  language: string;
+  setLanguage: (lang: string) => void;
+  t: (key: string) => string | string[];
+}
+
+export const TimerContext = createContext<TimerContextType | undefined>(undefined);
+
+export const themes: Theme[] = [
   { id: 'DEFAULT', name: 'FocusFlow', bg: '#0F2027', accent: '#4A90E2', secondary: '#203A43', text: '#FFFFFF', font: 'System', strokeLinecap: 'round', borderRadius: 30, borderWidth: 0, borderColor: 'transparent' },
   { id: 'VALORANT', name: 'Valorant', bg: '#0F1923', accent: '#FF4655', secondary: '#ECE8E1', text: '#ECE8E1', font: 'System', strokeLinecap: 'square', borderRadius: 8, borderWidth: 0, borderColor: 'transparent' },
   { id: 'CYBERPUNK', name: 'Cyberpunk 2077', bg: '#050505', accent: '#00F0FF', secondary: '#FF003C', text: '#FCEE0A', font: 'monospace', strokeLinecap: 'square', borderRadius: 2, borderWidth: 2, borderColor: '#FCEE0A' },
@@ -21,7 +80,7 @@ export const themes = [
   { id: 'MATRIX', name: 'Matrix', bg: '#000000', accent: '#00FF41', secondary: '#003B00', text: '#00FF41', font: 'monospace', strokeLinecap: 'square', borderRadius: 2, borderWidth: 1, borderColor: '#00FF41' },
 ];
 
-const defaultPresets = [
+const defaultPresets: Preset[] = [
   { id: 'p1', name: 'Klasik Odak', work: 25, short: 5, long: 15 },
   { id: 'p2', name: 'Derin Çalışma', work: 50, short: 10, long: 20 },
   { id: 'p3', name: 'Hızlı Pomodoro', work: 15, short: 3, long: 10 },
@@ -29,27 +88,35 @@ const defaultPresets = [
   { id: 'p5', name: 'Öğrenci Modu', work: 20, short: 5, long: 15 },
 ];
 
-export const TimerProvider = ({ children }) => {
-  const [workTime, setWorkTime] = useState(25);
-  const [shortBreakTime, setShortBreakTime] = useState(5);
-  const [longBreakTime, setLongBreakTime] = useState(15);
-  const [longBreakInterval, setLongBreakInterval] = useState(4);
+interface TimerProviderProps {
+  children: ReactNode;
+}
+
+export const TimerProvider = ({ children }: TimerProviderProps) => {
+  const [workTime, setWorkTime] = useState<number>(25);
+  const [shortBreakTime, setShortBreakTime] = useState<number>(5);
+  const [longBreakTime, setLongBreakTime] = useState<number>(15);
+  const [longBreakInterval, setLongBreakInterval] = useState<number>(4);
 
   // VARSAYILAN OLARAK AÇIK YAPILDI
-  const [autoStartBreak, setAutoStartBreak] = useState(true);
-  const [autoStartPomodoro, setAutoStartPomodoro] = useState(true);
+  const [autoStartBreak, setAutoStartBreak] = useState<boolean>(true);
+  const [autoStartPomodoro, setAutoStartPomodoro] = useState<boolean>(true);
 
-  const [isSoundEnabled, setIsSoundEnabled] = useState(true);
-  const [showParticles, setShowParticles] = useState(true);
+  const [isSoundEnabled, setIsSoundEnabled] = useState<boolean>(true);
+  const [showParticles, setShowParticles] = useState<boolean>(true);
 
-  const [history, setHistory] = useState([]);
-  const [currentTheme, setCurrentTheme] = useState(themes[0]);
-  const [presets, setPresets] = useState(defaultPresets);
-  const [language, setLanguage] = useState('en');
+  const [history, setHistory] = useState<HistoryEntry[]>([]);
+  const [currentTheme, setCurrentTheme] = useState<Theme>(themes[0]);
+  const [presets, setPresets] = useState<Preset[]>(defaultPresets);
+  const [language, setLanguage] = useState<string>('en');
 
-  const t = (key) => translations[language][key] || key;
+  const t = (key: string): string | string[] => {
+    const langTranslations = translations[language];
+    if (!langTranslations) return key;
+    return (langTranslations as any)[key] || key;
+  };
 
-  const playSound = async () => {
+  const playSound = async (): Promise<void> => {
     if (!isSoundEnabled) return;
     try {
       const { sound } = await Audio.Sound.createAsync(
@@ -61,31 +128,39 @@ export const TimerProvider = ({ children }) => {
     }
   };
 
-  const sendNotification = async (title, body) => {
+  const sendNotification = async (title: string, body: string): Promise<void> => {
     await Notifications.scheduleNotificationAsync({
       content: { title, body, sound: isSoundEnabled },
       trigger: null,
     });
   };
 
-  const addToHistory = (mode, durationSeconds) => {
-    const newEntry = { date: new Date().toISOString(), mode, duration: durationSeconds };
+  const addToHistory = (mode: string, durationSeconds: number): void => {
+    const newEntry: HistoryEntry = { date: new Date().toISOString(), mode, duration: durationSeconds };
     const updatedHistory = [...history, newEntry];
     setHistory(updatedHistory);
     saveData(updatedHistory);
   };
 
-  const saveData = async (data) => {
-    try { await AsyncStorage.setItem('@timer_history', JSON.stringify(data)); }
-    catch (e) { console.error(e); }
+  const saveData = async (data: HistoryEntry[]): Promise<void> => {
+    try { 
+      await AsyncStorage.setItem('@timer_history', JSON.stringify(data)); 
+    } catch (e) { 
+      console.error(e); 
+    }
   };
 
   useEffect(() => {
-    const loadData = async () => {
+    const loadData = async (): Promise<void> => {
       try {
         const jsonValue = await AsyncStorage.getItem('@timer_history');
-        if (jsonValue != null) setHistory(JSON.parse(jsonValue));
-      } catch (e) { console.error(e); }
+        if (jsonValue != null) {
+          const parsed = JSON.parse(jsonValue) as HistoryEntry[];
+          setHistory(parsed);
+        }
+      } catch (e) { 
+        console.error(e); 
+      }
     };
     loadData();
   }, []);
@@ -110,3 +185,4 @@ export const TimerProvider = ({ children }) => {
     </TimerContext.Provider>
   );
 };
+

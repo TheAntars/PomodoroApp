@@ -1,10 +1,26 @@
 import { Platform } from 'react-native';
 
-export const CLASSIC_COLORS = [
+export const CLASSIC_COLORS: string[] = [
   '#f2b157', '#ea7274', '#72a83d', '#5399cd', '#a9a9a9', '#b8943e', '#8e44ad', '#2c3e50'
 ];
 
-export const THEMES = {
+export interface Theme {
+  id: string;
+  name: string;
+  bg: string;
+  cardBg?: string;
+  text: string;
+  accent: string;
+  secondary: string;
+  font: string;
+  borderRadius: number;
+  borderWidth: number;
+  borderColor?: string;
+  strokeLinecap: 'round' | 'square' | 'butt';
+  shadow?: boolean;
+}
+
+export const THEMES: Record<string, Theme> = {
   DEFAULT: {
     id: 'DEFAULT',
     name: 'Minimal White',
@@ -36,16 +52,16 @@ export const THEMES = {
   MINECRAFT: {
     id: 'MINECRAFT',
     name: 'Minecraft',
-    bg: '#18100C', // Toprak
-    cardBg: '#3B2820', // Ahşap
+    bg: '#18100C',
+    cardBg: '#3B2820',
     text: '#FFFFFF',
-    accent: '#589028', // Çimen Yeşili
+    accent: '#589028',
     secondary: '#291D17',
     font: Platform.OS === 'ios' ? 'Courier' : 'monospace',
-    borderRadius: 0, // Kare bloklar
+    borderRadius: 0,
     borderWidth: 4,
     borderColor: '#120B08',
-    strokeLinecap: 'butt', // Küt uçlar
+    strokeLinecap: 'butt',
     shadow: false,
   },
   CYBERPUNK: {
@@ -84,7 +100,7 @@ export const THEMES = {
     bg: '#221C16',
     cardBg: '#3E3224',
     text: '#E0C086',
-    accent: '#740001', // Gryffindor
+    accent: '#740001',
     secondary: '#2C241C',
     font: 'serif',
     borderRadius: 16,
@@ -99,7 +115,7 @@ export const THEMES = {
     bg: '#000000',
     cardBg: '#111111',
     text: '#FFE81F',
-    accent: '#FF3333', // Sith Kırmızısı
+    accent: '#FF3333',
     secondary: '#222',
     font: 'System',
     borderRadius: 30,
@@ -181,3 +197,4 @@ export const THEMES = {
     shadow: false,
   }
 };
+

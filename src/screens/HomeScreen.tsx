@@ -1,62 +1,76 @@
 import React, { useState, useEffect, useContext, useRef } from 'react';
 import { View, Text, StyleSheet, TouchableOpacity, useWindowDimensions, Animated, Easing, Vibration, Modal, FlatList } from 'react-native';
 import { useNavigation } from '@react-navigation/native';
+import { StackNavigationProp } from '@react-navigation/stack';
 import { Ionicons } from '@expo/vector-icons';
 import { TimerContext } from '../context/TimerContext';
 import Svg, { Circle } from 'react-native-svg';
 import BackgroundParticles from '../components/BackgroundParticles';
+import { RootStackParamList } from '../navigation/AppNavigator';
+import { Preset } from '../context/TimerContext';
 
 const AnimatedCircle = Animated.createAnimatedComponent(Circle);
 
+type HomeScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Home'>;
+
 const HomeScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<HomeScreenNavigationProp>();
   const { width } = useWindowDimensions();
+  const context = useContext(TimerContext);
+  
+  if (!context) {
+    throw new Error('HomeScreen must be used within TimerProvider');
+  }
+
   const {
     currentTheme, workTime, shortBreakTime, longBreakTime,
     addToHistory, autoStartBreak, autoStartPomodoro, longBreakInterval,
     setWorkTime, setShortBreakTime, setLongBreakTime, presets,
     playSound, sendNotification, showParticles, t, language
-  } = useContext(TimerContext);
+  } = context;
 
   const containerWidth = width > 450 ? 375 : width;
   const CIRCLE_SIZE = containerWidth * 0.75;
-  const [modalVisible, setModalVisible] = useState(false);
-  const [quote, setQuote] = useState("");
+  const [modalVisible, setModalVisible] = useState<boolean>(false);
+  const [quote, setQuote] = useState<string>("");
+
+  type TimerMode = 'Focus' | 'ShortBreak' | 'LongBreak';
 
   // Quote Rotation Logic
   useEffect(() => {
     const quotes = t('quotes');
     if (quotes && Array.isArray(quotes)) {
-      setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+      const quotesArray = quotes as string[];
+      setQuote(quotesArray[Math.floor(Math.random() * quotesArray.length)]);
       const interval = setInterval(() => {
-        setQuote(quotes[Math.floor(Math.random() * quotes.length)]);
+        setQuote(quotesArray[Math.floor(Math.random() * quotesArray.length)]);
       }, 10000); // Change every 10 seconds
       return () => clearInterval(interval);
     }
   }, [language, t]);
+
   const STROKE_WIDTH = currentTheme.id === 'MINECRAFT' ? 22 : 15;
   const RADIUS = (CIRCLE_SIZE - STROKE_WIDTH) / 2;
   const CIRCUMFERENCE = 2 * Math.PI * RADIUS;
 
   // State
-  const [mode, setMode] = useState('Focus');
-  const [timeLeft, setTimeLeft] = useState(workTime * 60);
-  const [isActive, setIsActive] = useState(false);
-  const [pomodorosCompleted, setPomodorosCompleted] = useState(0);
-
+  const [mode, setMode] = useState<TimerMode>('Focus');
+  const [timeLeft, setTimeLeft] = useState<number>(workTime * 60);
+  const [isActive, setIsActive] = useState<boolean>(false);
+  const [pomodorosCompleted, setPomodorosCompleted] = useState<number>(0);
 
   // Refs (Animation & Values)
   const animatedValue = useRef(new Animated.Value(1)).current;
   const pulseAnim = useRef(new Animated.Value(1)).current;
 
   // Helpers
-  const getTotalTimeInSeconds = (currentMode) => {
+  const getTotalTimeInSeconds = (currentMode: TimerMode): number => {
     if (currentMode === 'Focus') return workTime * 60;
     if (currentMode === 'ShortBreak') return shortBreakTime * 60;
     return longBreakTime * 60;
   };
 
-  const getContrastColor = (hex) => {
+  const getContrastColor = (hex: string): string => {
     const r = parseInt(hex.substr(1, 2), 16);
     const g = parseInt(hex.substr(3, 2), 16);
     const b = parseInt(hex.substr(5, 2), 16);
@@ -69,16 +83,14 @@ const HomeScreen = () => {
     if (!isActive) {
       setTimeLeft(getTotalTimeInSeconds(mode));
     }
-  }, [workTime, shortBreakTime, longBreakTime]);
+  }, [workTime, shortBreakTime, longBreakTime, isActive, mode]);
 
   // TIMER LOGIC (CRITICAL FIX)
   // Refs for stable access in intervals
-  const timeLeftRef = useRef(timeLeft);
-  const handleCompleteRef = useRef(null);
+  const timeLeftRef = useRef<number>(timeLeft);
+  const handleCompleteRef = useRef<(() => Promise<void>) | null>(null);
 
-
-
-  const handleComplete = async () => {
+  const handleComplete = async (): Promise<void> => {
     // 1. Stop everything immediately
     setIsActive(false);
     pulseAnim.stopAnimation();
@@ -87,7 +99,10 @@ const HomeScreen = () => {
     // 2. Play effects (Non-blocking)
     try {
       await playSound();
-      await sendNotification(t('timeUp'), mode === 'Focus' ? t('breakTime') : t('backToWork'));
+      const timeUpText = t('timeUp') as string;
+      const breakTimeText = t('breakTime') as string;
+      const backToWorkText = t('backToWork') as string;
+      await sendNotification(timeUpText, mode === 'Focus' ? breakTimeText : backToWorkText);
       Vibration.vibrate([0, 500, 200, 500]);
     } catch (error) {
       console.log("Effect error:", error);
@@ -97,7 +112,7 @@ const HomeScreen = () => {
     addToHistory(mode, getTotalTimeInSeconds(mode));
 
     // Mod Değiştirme Mantığı
-    let nextMode = 'Focus';
+    let nextMode: TimerMode = 'Focus';
     let shouldAutoStart = false;
 
     if (mode === 'Focus') {
@@ -135,7 +150,7 @@ const HomeScreen = () => {
 
   // TIMER LOGIC (OPTIMIZED)
   useEffect(() => {
-    let interval = null;
+    let interval: NodeJS.Timeout | null = null;
 
     if (isActive) {
       // Daire Animasyonu Başlat
@@ -155,7 +170,7 @@ const HomeScreen = () => {
       interval = setInterval(() => {
         setTimeLeft((prev) => {
           if (prev <= 1) {
-            clearInterval(interval);
+            if (interval) clearInterval(interval);
             handleCompleteRef.current?.();
             return 0;
           }
@@ -163,13 +178,8 @@ const HomeScreen = () => {
         });
       }, 1000);
 
-      // Son 5 saniye animasyonu - This needs to check timeLeft continuously?
-      // The previous code checked timeLeft <= 6 inside the effect. 
-      // But since the effect doesn't run every second anymore, this won't trigger automatically 
-      // unless we move it to the interval or a separate effect.
-
     } else {
-      clearInterval(interval);
+      if (interval) clearInterval(interval);
       animatedValue.stopAnimation();
       // Durdurunca animasyon değerini o anki zamana göre senkronize et
       const totalTime = getTotalTimeInSeconds(mode);
@@ -177,8 +187,10 @@ const HomeScreen = () => {
       animatedValue.setValue(timeLeftRef.current / totalTime);
     }
 
-    return () => clearInterval(interval);
-  }, [isActive, mode]); // Removed timeLeft from dependencies
+    return () => {
+      if (interval) clearInterval(interval);
+    };
+  }, [isActive, mode, animatedValue]);
 
   // Separate effect for pulse animation near end
   useEffect(() => {
@@ -193,14 +205,14 @@ const HomeScreen = () => {
       pulseAnim.stopAnimation();
       pulseAnim.setValue(1);
     }
-  }, [timeLeft, isActive]);
+  }, [timeLeft, isActive, pulseAnim]);
 
-  const toggleTimer = () => {
+  const toggleTimer = (): void => {
     Vibration.vibrate(50);
     setIsActive(!isActive);
   };
 
-  const handleReset = () => {
+  const handleReset = (): void => {
     Vibration.vibrate(50);
     setIsActive(false);
     setTimeLeft(getTotalTimeInSeconds(mode));
@@ -209,7 +221,7 @@ const HomeScreen = () => {
     pulseAnim.setValue(1);
   };
 
-  const applyPreset = (preset) => {
+  const applyPreset = (preset: Preset): void => {
     setWorkTime(preset.work);
     setShortBreakTime(preset.short);
     setLongBreakTime(preset.long);
@@ -226,7 +238,7 @@ const HomeScreen = () => {
     outputRange: [CIRCUMFERENCE, 0],
   });
 
-  const formatTime = (s) => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
+  const formatTime = (s: number): string => `${Math.floor(s / 60).toString().padStart(2, '0')}:${(s % 60).toString().padStart(2, '0')}`;
 
   return (
     <View style={[styles.container, { backgroundColor: currentTheme.bg }]}>
@@ -243,7 +255,7 @@ const HomeScreen = () => {
               {currentTheme.name.toUpperCase()}
             </Text>
             <Text style={{ color: currentTheme.text, fontSize: 10, opacity: 0.6 }}>
-              {pomodorosCompleted} / {longBreakInterval} {t('cycle')}
+              {pomodorosCompleted} / {longBreakInterval} {t('cycle') as string}
             </Text>
           </View>
           <Ionicons name="chevron-down" size={16} color={currentTheme.text} style={{ opacity: 0.7 }} />
@@ -275,7 +287,7 @@ const HomeScreen = () => {
 
           <TouchableOpacity onPress={() => setModalVisible(true)}>
             <Text style={[styles.modeText, { color: currentTheme.text, opacity: 0.7, fontFamily: currentTheme.font }]}>
-              {mode === 'Focus' ? t('focus') : (mode === 'ShortBreak' ? t('shortBreak') : t('longBreak'))}
+              {mode === 'Focus' ? t('focus') as string : (mode === 'ShortBreak' ? t('shortBreak') as string : t('longBreak') as string)}
             </Text>
           </TouchableOpacity>
         </View>
@@ -323,8 +335,7 @@ const HomeScreen = () => {
             <View style={[styles.dragHandle, { backgroundColor: currentTheme.secondary }]} />
 
             <View style={styles.modalHeader}>
-              <Text style={[styles.modalTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('selectMode')}</Text>
-              {/* Close button optional since it's a bottom sheet, but good to have */}
+              <Text style={[styles.modalTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('selectMode') as string}</Text>
             </View>
             <FlatList
               data={presets}
@@ -380,3 +391,4 @@ const styles = StyleSheet.create({
 });
 
 export default HomeScreen;
+

@@ -1,4 +1,42 @@
-export const translations = {
+export const translations: Record<string, {
+  focus: string;
+  shortBreak: string;
+  longBreak: string;
+  settings: string;
+  stats: string;
+  appSettings: string;
+  soundEffects: string;
+  bgEffects: string;
+  timerSettings: string;
+  focusTime: string;
+  shortBreakTime: string;
+  longBreakTime: string;
+  automation: string;
+  autoStartBreak: string;
+  autoStartFocus: string;
+  longBreakInterval: string;
+  themes: string;
+  language: string;
+  selectMode: string;
+  cycle: string;
+  focusTimeStat: string;
+  sessionsStat: string;
+  focusCalendar: string;
+  last7Days: string;
+  timeUp: string;
+  breakTime: string;
+  backToWork: string;
+  howToUse: string;
+  howToUseText: string;
+  mon: string;
+  tue: string;
+  wed: string;
+  thu: string;
+  fri: string;
+  sat: string;
+  sun: string;
+  quotes: string[];
+}> = {
     en: {
         focus: "FOCUS",
         shortBreak: "SHORT BREAK",
@@ -418,3 +456,4 @@ export const translations = {
         ]
     }
 };
+

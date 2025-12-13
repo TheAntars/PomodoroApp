@@ -4,14 +4,18 @@ import { View, Animated, StyleSheet, Dimensions, Easing } from 'react-native';
 const { width, height } = Dimensions.get('window');
 const NUM_PARTICLES = 40; // Daha fazla yıldız/parçacık
 
-const Particle = ({ color }) => {
+interface ParticleProps {
+  color: string;
+}
+
+const Particle = ({ color }: ParticleProps) => {
   // Rastgele başlangıç pozisyonları
   const positionX = useRef(new Animated.Value(Math.random() * width)).current;
   const positionY = useRef(new Animated.Value(Math.random() * height)).current;
   const opacity = useRef(new Animated.Value(Math.random() * 0.5 + 0.1)).current;
   const scale = useRef(new Animated.Value(Math.random() * 0.8 + 0.2)).current;
 
-  const isMounted = useRef(true);
+  const isMounted = useRef<boolean>(true);
 
   useEffect(() => {
     isMounted.current = true;
@@ -23,7 +27,7 @@ const Particle = ({ color }) => {
   useEffect(() => {
     // Use Animated.loop for continuous movement to prevent freezing
     // We create a sequence of random movements that loops
-    const createAnimation = () => {
+    const createAnimation = (): void => {
       const durationX = 20000 + Math.random() * 15000;
       const durationY = 20000 + Math.random() * 15000;
 
@@ -87,7 +91,12 @@ const Particle = ({ color }) => {
   );
 };
 
-const BackgroundParticles = ({ color, enabled }) => {
+interface BackgroundParticlesProps {
+  color: string;
+  enabled: boolean;
+}
+
+const BackgroundParticles = ({ color, enabled }: BackgroundParticlesProps) => {
   if (!enabled) return null;
 
   return (
@@ -100,3 +109,4 @@ const BackgroundParticles = ({ color, enabled }) => {
 };
 
 export default BackgroundParticles;
+

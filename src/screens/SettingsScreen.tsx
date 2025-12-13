@@ -1,9 +1,43 @@
-import React, { useContext, useState } from 'react';
+import React, { useContext, useState, ReactNode } from 'react';
 import { View, Text, StyleSheet, Switch, TouchableOpacity, ScrollView, Modal, FlatList } from 'react-native';
 import { TimerContext } from '../context/TimerContext';
 import { Ionicons } from '@expo/vector-icons';
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
-const SettingsScreen = ({ navigation }) => {
+type SettingsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Settings'>;
+
+interface SettingsScreenProps {
+  navigation: SettingsScreenNavigationProp;
+}
+
+interface Language {
+  code: string;
+  label: string;
+  flag: string;
+}
+
+interface SettingSectionProps {
+  title: string;
+  icon: string;
+  children: ReactNode;
+}
+
+interface SettingRowProps {
+  label: string;
+  value: boolean | number;
+  onToggle?: (value: boolean) => void;
+  type?: 'switch' | 'number';
+  setter?: (value: number) => void;
+}
+
+const SettingsScreen = ({ navigation }: SettingsScreenProps) => {
+  const context = useContext(TimerContext);
+  
+  if (!context) {
+    throw new Error('SettingsScreen must be used within TimerProvider');
+  }
+
   const {
     workTime, setWorkTime,
     shortBreakTime, setShortBreakTime,
@@ -15,9 +49,9 @@ const SettingsScreen = ({ navigation }) => {
     isSoundEnabled, setIsSoundEnabled,
     showParticles, setShowParticles,
     language, setLanguage, t
-  } = useContext(TimerContext);
+  } = context;
 
-  const languages = [
+  const languages: Language[] = [
     { code: 'en', label: 'English', flag: '🇺🇸' },
     { code: 'tr', label: 'Türkçe', flag: '🇹🇷' },
     { code: 'ar', label: 'العربية', flag: '🇦🇪' },
@@ -31,13 +65,13 @@ const SettingsScreen = ({ navigation }) => {
     { code: 'de', label: 'Deutsch', flag: '🇩🇪' }
   ];
 
-  const [languageModalVisible, setLanguageModalVisible] = useState(false);
+  const [languageModalVisible, setLanguageModalVisible] = useState<boolean>(false);
   const currentLang = languages.find(l => l.code === language) || languages[0];
 
-  const SettingSection = ({ title, icon, children }) => (
+  const SettingSection = ({ title, icon, children }: SettingSectionProps) => (
     <View style={styles.sectionContainer}>
       <View style={styles.sectionHeader}>
-        <Ionicons name={icon} size={18} color={currentTheme.accent} style={{ marginRight: 8 }} />
+        <Ionicons name={icon as any} size={18} color={currentTheme.accent} style={{ marginRight: 8 }} />
         <Text style={[styles.sectionTitle, { color: currentTheme.accent, fontFamily: currentTheme.font }]}>{title.toUpperCase()}</Text>
       </View>
       <View style={[styles.sectionContent, { backgroundColor: currentTheme.secondary + '15', borderColor: currentTheme.secondary + '30' }]}>
@@ -46,23 +80,23 @@ const SettingsScreen = ({ navigation }) => {
     </View>
   );
 
-  const SettingRow = ({ label, value, onToggle, type = 'switch', setter }) => (
+  const SettingRow = ({ label, value, onToggle, type = 'switch', setter }: SettingRowProps) => (
     <View style={[styles.row, { borderBottomColor: currentTheme.secondary + '20' }]}>
       <Text style={[styles.label, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{label}</Text>
       {type === 'switch' ? (
         <Switch
-          value={value}
-          onValueChange={onToggle}
+          value={value as boolean}
+          onValueChange={onToggle as (value: boolean) => void}
           trackColor={{ false: "#555", true: currentTheme.accent }}
           thumbColor={value ? "#fff" : "#f4f3f4"}
         />
       ) : (
         <View style={styles.counterContainer}>
-          <TouchableOpacity onPress={() => setter(Math.max(1, value - 1))} style={[styles.counterBtn, { backgroundColor: currentTheme.secondary }]}>
+          <TouchableOpacity onPress={() => setter && setter(Math.max(1, (value as number) - 1))} style={[styles.counterBtn, { backgroundColor: currentTheme.secondary }]}>
             <Ionicons name="remove" size={16} />
           </TouchableOpacity>
           <Text style={[styles.valueText, { color: currentTheme.text }]}>{value}</Text>
-          <TouchableOpacity onPress={() => setter(value + 1)} style={[styles.counterBtn, { backgroundColor: currentTheme.secondary }]}>
+          <TouchableOpacity onPress={() => setter && setter((value as number) + 1)} style={[styles.counterBtn, { backgroundColor: currentTheme.secondary }]}>
             <Ionicons name="add" size={16} />
           </TouchableOpacity>
         </View>
@@ -76,23 +110,23 @@ const SettingsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()} style={styles.backBtn}>
           <Ionicons name="arrow-back" size={28} color={currentTheme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('settings')}</Text>
+        <Text style={[styles.headerTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('settings') as string}</Text>
         <View style={{ width: 28 }} />
       </View>
 
       <ScrollView contentContainerStyle={styles.scrollContent} showsVerticalScrollIndicator={false}>
 
         {/* YENİ: UYGULAMA AYARLARI */}
-        <SettingSection title={t('appSettings')} icon="options-outline">
-          <SettingRow label={t('soundEffects')} value={isSoundEnabled} onToggle={setIsSoundEnabled} />
-          <SettingRow label={t('bgEffects')} value={showParticles} onToggle={setShowParticles} />
+        <SettingSection title={t('appSettings') as string} icon="options-outline">
+          <SettingRow label={t('soundEffects') as string} value={isSoundEnabled} onToggle={setIsSoundEnabled} />
+          <SettingRow label={t('bgEffects') as string} value={showParticles} onToggle={setShowParticles} />
 
           {/* Language Selector Trigger */}
           <TouchableOpacity
             style={[styles.row, { borderBottomColor: currentTheme.secondary + '20' }]}
             onPress={() => setLanguageModalVisible(true)}
           >
-            <Text style={[styles.label, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('language')}</Text>
+            <Text style={[styles.label, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('language') as string}</Text>
             <View style={{ flexDirection: 'row', alignItems: 'center', gap: 8 }}>
               <Text style={{ fontSize: 18 }}>{currentLang.flag}</Text>
               <Text style={{ color: currentTheme.text, opacity: 0.7, fontSize: 14 }}>{currentLang.label}</Text>
@@ -105,7 +139,7 @@ const SettingsScreen = ({ navigation }) => {
         <Modal animationType="fade" transparent={true} visible={languageModalVisible} onRequestClose={() => setLanguageModalVisible(false)}>
           <TouchableOpacity style={styles.modalOverlay} activeOpacity={1} onPress={() => setLanguageModalVisible(false)}>
             <View style={[styles.modalContent, { backgroundColor: currentTheme.bg, borderColor: currentTheme.accent, shadowColor: currentTheme.accent }]}>
-              <Text style={[styles.modalTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('language')}</Text>
+              <Text style={[styles.modalTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('language') as string}</Text>
               <FlatList
                 data={languages}
                 keyExtractor={item => item.code}
@@ -127,22 +161,22 @@ const SettingsScreen = ({ navigation }) => {
           </TouchableOpacity>
         </Modal>
 
-        <SettingSection title={t('timerSettings')} icon="timer-outline">
-          <SettingRow label={t('focusTime')} value={workTime} type="number" setter={setWorkTime} />
-          <SettingRow label={t('shortBreakTime')} value={shortBreakTime} type="number" setter={setShortBreakTime} />
-          <SettingRow label={t('longBreakTime')} value={longBreakTime} type="number" setter={setLongBreakTime} />
+        <SettingSection title={t('timerSettings') as string} icon="timer-outline">
+          <SettingRow label={t('focusTime') as string} value={workTime} type="number" setter={setWorkTime} />
+          <SettingRow label={t('shortBreakTime') as string} value={shortBreakTime} type="number" setter={setShortBreakTime} />
+          <SettingRow label={t('longBreakTime') as string} value={longBreakTime} type="number" setter={setLongBreakTime} />
         </SettingSection>
 
-        <SettingSection title={t('automation')} icon="construct-outline">
-          <SettingRow label={t('autoStartBreak')} value={autoStartBreak} onToggle={setAutoStartBreak} />
-          <SettingRow label={t('autoStartFocus')} value={autoStartPomodoro} onToggle={setAutoStartPomodoro} />
-          <SettingRow label={t('longBreakInterval')} value={longBreakInterval} type="number" setter={setLongBreakInterval} />
+        <SettingSection title={t('automation') as string} icon="construct-outline">
+          <SettingRow label={t('autoStartBreak') as string} value={autoStartBreak} onToggle={setAutoStartBreak} />
+          <SettingRow label={t('autoStartFocus') as string} value={autoStartPomodoro} onToggle={setAutoStartPomodoro} />
+          <SettingRow label={t('longBreakInterval') as string} value={longBreakInterval} type="number" setter={setLongBreakInterval} />
         </SettingSection>
 
-        <SettingSection title={t('howToUse')} icon="help-circle-outline">
+        <SettingSection title={t('howToUse') as string} icon="help-circle-outline">
           <View style={{ padding: 15 }}>
             <Text style={{ color: currentTheme.text, fontSize: 14, lineHeight: 22, fontFamily: currentTheme.font, opacity: 0.8 }}>
-              {t('howToUseText')}
+              {t('howToUseText') as string}
             </Text>
           </View>
         </SettingSection>
@@ -150,7 +184,7 @@ const SettingsScreen = ({ navigation }) => {
         <View style={styles.sectionContainer}>
           <View style={styles.sectionHeader}>
             <Ionicons name="color-palette-outline" size={18} color={currentTheme.accent} style={{ marginRight: 8 }} />
-            <Text style={[styles.sectionTitle, { color: currentTheme.accent, fontFamily: currentTheme.font }]}>{t('themes')}</Text>
+            <Text style={[styles.sectionTitle, { color: currentTheme.accent, fontFamily: currentTheme.font }]}>{t('themes') as string}</Text>
           </View>
           <View style={styles.themeGrid}>
             {themes.map((theme) => (
@@ -197,7 +231,9 @@ const styles = StyleSheet.create({
   modalOverlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.6)', justifyContent: 'center', alignItems: 'center' },
   modalContent: { width: '85%', maxWidth: 340, maxHeight: '50%', borderRadius: 20, borderWidth: 1, padding: 20, elevation: 10 },
   modalTitle: { fontSize: 18, fontWeight: 'bold', marginBottom: 15, textAlign: 'center' },
-  langOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 10, borderRadius: 8 }
+  langOption: { flexDirection: 'row', alignItems: 'center', paddingVertical: 12, paddingHorizontal: 10, borderRadius: 8 },
+  backBtn: { padding: 5 }
 });
 
 export default SettingsScreen;
+

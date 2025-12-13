@@ -3,16 +3,35 @@ import { View, Text, StyleSheet, ScrollView, TouchableOpacity, useWindowDimensio
 import { TimerContext } from '../context/TimerContext';
 import { Ionicons } from '@expo/vector-icons';
 import { ContributionGraph, BarChart } from "react-native-chart-kit";
+import { StackNavigationProp } from '@react-navigation/stack';
+import { RootStackParamList } from '../navigation/AppNavigator';
 
-const StatsScreen = ({ navigation }) => {
+type StatsScreenNavigationProp = StackNavigationProp<RootStackParamList, 'Stats'>;
+
+interface StatsScreenProps {
+  navigation: StatsScreenNavigationProp;
+}
+
+interface ContributionData {
+  date: string;
+  count: number;
+}
+
+const StatsScreen = ({ navigation }: StatsScreenProps) => {
   const { width: screenWidth } = useWindowDimensions();
-  const { history, currentTheme, t } = useContext(TimerContext);
+  const context = useContext(TimerContext);
+  
+  if (!context) {
+    throw new Error('StatsScreen must be used within TimerProvider');
+  }
+
+  const { history, currentTheme, t } = context;
 
   const totalFocusMinutes = Math.floor(history.filter(h => h.mode === 'Focus').reduce((acc, curr) => acc + curr.duration, 0) / 60);
   const totalSessions = history.length;
 
-  const getContributionData = () => {
-    const data = {};
+  const getContributionData = (): ContributionData[] => {
+    const data: Record<string, number> = {};
     history.forEach(item => {
       if (item.mode === 'Focus') {
         const date = item.date.split('T')[0];
@@ -28,7 +47,15 @@ const StatsScreen = ({ navigation }) => {
   const contributionData = getContributionData();
 
   const getWeeklyData = () => {
-    const days = [t('sun'), t('mon'), t('tue'), t('wed'), t('thu'), t('fri'), t('sat')];
+    const days = [
+      t('sun') as string, 
+      t('mon') as string, 
+      t('tue') as string, 
+      t('wed') as string, 
+      t('thu') as string, 
+      t('fri') as string, 
+      t('sat') as string
+    ];
     const data = [0, 0, 0, 0, 0, 0, 0];
     const today = new Date();
     today.setHours(0, 0, 0, 0); // Bugünü sıfırla
@@ -38,7 +65,7 @@ const StatsScreen = ({ navigation }) => {
         const itemDate = new Date(item.date);
         itemDate.setHours(0, 0, 0, 0); // Kayıt tarihini sıfırla
 
-        const diffTime = Math.abs(today - itemDate);
+        const diffTime = Math.abs(today.getTime() - itemDate.getTime());
         const diffDays = Math.ceil(diffTime / (1000 * 60 * 60 * 24));
 
         if (diffDays < 7) { // Son 7 gün
@@ -71,7 +98,7 @@ const StatsScreen = ({ navigation }) => {
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Ionicons name="arrow-back" size={28} color={currentTheme.text} />
         </TouchableOpacity>
-        <Text style={[styles.headerTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('stats')}</Text>
+        <Text style={[styles.headerTitle, { color: currentTheme.text, fontFamily: currentTheme.font }]}>{t('stats') as string}</Text>
         <View style={{ width: 28 }} />
       </View>
 
@@ -80,17 +107,17 @@ const StatsScreen = ({ navigation }) => {
           <View style={[styles.card, { borderColor: currentTheme.secondary, backgroundColor: currentTheme.secondary + '10' }]}>
             <Ionicons name="hourglass-outline" size={24} color={currentTheme.accent} style={{ marginBottom: 5 }} />
             <Text style={[styles.cardVal, { color: currentTheme.text }]}>{totalFocusMinutes}</Text>
-            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>{t('focusTimeStat')}</Text>
+            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>{t('focusTimeStat') as string}</Text>
           </View>
           <View style={[styles.card, { borderColor: currentTheme.secondary, backgroundColor: currentTheme.secondary + '10' }]}>
             <Ionicons name="checkmark-circle-outline" size={24} color={currentTheme.accent} style={{ marginBottom: 5 }} />
             <Text style={[styles.cardVal, { color: currentTheme.text }]}>{totalSessions}</Text>
-            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>{t('sessionsStat')}</Text>
+            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>{t('sessionsStat') as string}</Text>
           </View>
         </View>
 
         <View style={[styles.chartContainer, { borderColor: currentTheme.secondary + '30' }]}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('focusCalendar')}</Text>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('focusCalendar') as string}</Text>
           <View style={{ overflow: 'hidden', marginLeft: -10 }}>
             <ContributionGraph
               values={contributionData}
@@ -107,7 +134,7 @@ const StatsScreen = ({ navigation }) => {
         </View>
 
         <View style={[styles.chartContainer, { borderColor: currentTheme.secondary + '30' }]}>
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('last7Days')}</Text>
+          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>{t('last7Days') as string}</Text>
           <BarChart
             data={getWeeklyData()}
             width={screenWidth - 60}
@@ -132,7 +159,6 @@ const StatsScreen = ({ navigation }) => {
             showBarTops={true}
             showValuesOnTopOfBars={true}
             withInnerLines={false}
-            withYAxisLabels={true}
             style={{
               borderRadius: 16,
               marginTop: 10,
@@ -159,3 +185,4 @@ const styles = StyleSheet.create({
 });
 
 export default StatsScreen;
+

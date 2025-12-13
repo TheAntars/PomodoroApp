@@ -5,6 +5,7 @@ import { createStackNavigator } from '@react-navigation/stack';
 import { TimerProvider } from './src/context/TimerContext';
 import { View, Platform, StatusBar } from 'react-native';
 import * as Notifications from 'expo-notifications';
+import { RootStackParamList } from './src/navigation/AppNavigator';
 
 // Ekranlar
 import HomeScreen from './src/screens/HomeScreen';
@@ -17,10 +18,12 @@ Notifications.setNotificationHandler({
     shouldShowAlert: true,
     shouldPlaySound: true,
     shouldSetBadge: false,
+    shouldShowBanner: true,
+    shouldShowList: true,
   }),
 });
 
-const Stack = createStackNavigator();
+const Stack = createStackNavigator<RootStackParamList>();
 
 export default function App() {
   const isWeb = Platform.OS === 'web';
@@ -49,16 +52,16 @@ export default function App() {
           <View style={{
             width: isWeb ? 375 : '100%', 
             height: isWeb ? 812 : '100%', 
-            maxHeight: isWeb ? '90vh' : '100%', 
+            maxHeight: isWeb ? 730 : '100%', 
             overflow: 'hidden',
             borderRadius: isWeb ? 30 : 0, 
             boxShadow: isWeb ? '0px 0px 50px rgba(0,0,0,0.5)' : undefined,
             elevation: isWeb ? 10 : 0,
             backgroundColor: '#000' 
-          }}>
+          } as any}>
             <NavigationContainer>
               <StatusBar barStyle="light-content" backgroundColor="#000" />
-              <Stack.Navigator screenOptions={{ headerShown: false, animationEnabled: true }}>
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
                 <Stack.Screen name="Home" component={HomeScreen} />
                 <Stack.Screen name="Settings" component={SettingsScreen} />
                 <Stack.Screen name="Stats" component={StatsScreen} />
