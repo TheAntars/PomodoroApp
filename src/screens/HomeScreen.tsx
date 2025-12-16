@@ -110,19 +110,12 @@ const HomeScreen = () => {
     return yiq >= 128 ? "#000000" : "#FFFFFF";
   };
 
-  // Ayarlar değişince zamanı güncelle (Eğer çalışmıyorsa)
+  // YENİ: Sadece süre ayarları değiştiğinde zamanı güncelle
   useEffect(() => {
     if (!isActive) {
       setTimeLeft(getTotalTimeInSeconds(mode));
     }
-  }, [
-    workTime,
-    shortBreakTime,
-    longBreakTime,
-    isActive,
-    mode,
-    getTotalTimeInSeconds,
-  ]);
+  }, [workTime, shortBreakTime, longBreakTime]); // mode ve isActive çıkarıldı
 
   // TIMER LOGIC (CRITICAL FIX)
   // Refs for stable access in intervals
@@ -532,6 +525,7 @@ const HomeScreen = () => {
             </View>
             <FlatList
               data={presets}
+              extraData={language}
               keyExtractor={(item) => item.id}
               renderItem={({ item }) => (
                 <TouchableOpacity
@@ -577,7 +571,7 @@ const HomeScreen = () => {
                           fontSize: 15,
                         }}
                       >
-                        {item.name}
+                        {t(item.name) as string}
                       </Text>
                       <Text
                         style={{

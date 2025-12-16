@@ -133,74 +133,42 @@ const StatsScreen = ({ navigation }: StatsScreenProps) => {
         contentContainerStyle={styles.content}
         showsVerticalScrollIndicator={false}
       >
-        <View style={styles.grid}>
+        <View style={{ marginBottom: 20 }}>
           <View
-            style={[
-              styles.card,
-              {
-                borderColor: currentTheme.secondary,
-                backgroundColor: currentTheme.secondary + "10",
-              },
-            ]}
+            style={{
+              flexDirection: "row",
+              justifyContent: "space-between",
+              marginBottom: 10,
+            }}
           >
-            <Ionicons
-              name="hourglass-outline"
-              size={24}
-              color={currentTheme.accent}
-              style={{ marginBottom: 5 }}
-            />
-            <Text style={[styles.cardVal, { color: currentTheme.text }]}>
-              {totalFocusMinutes}
-            </Text>
-            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>
+            <Text style={{ color: currentTheme.text, fontSize: 16 }}>
               {t("focusTimeStat") as string}
             </Text>
+            <Text
+              style={{
+                color: currentTheme.accent,
+                fontSize: 16,
+                fontWeight: "bold",
+              }}
+            >
+              {totalFocusMinutes} min
+            </Text>
           </View>
           <View
-            style={[
-              styles.card,
-              {
-                borderColor: currentTheme.secondary,
-                backgroundColor: currentTheme.secondary + "10",
-              },
-            ]}
+            style={{ flexDirection: "row", justifyContent: "space-between" }}
           >
-            <Ionicons
-              name="checkmark-circle-outline"
-              size={24}
-              color={currentTheme.accent}
-              style={{ marginBottom: 5 }}
-            />
-            <Text style={[styles.cardVal, { color: currentTheme.text }]}>
-              {totalSessions}
-            </Text>
-            <Text style={[styles.cardLbl, { color: currentTheme.text }]}>
+            <Text style={{ color: currentTheme.text, fontSize: 16 }}>
               {t("sessionsStat") as string}
             </Text>
-          </View>
-        </View>
-
-        <View
-          style={[
-            styles.chartContainer,
-            { borderColor: currentTheme.secondary + "30" },
-          ]}
-        >
-          <Text style={[styles.sectionTitle, { color: currentTheme.text }]}>
-            {t("focusCalendar") as string}
-          </Text>
-          <View style={{ overflow: "hidden", marginLeft: -10 }}>
-            <ContributionGraph
-              values={contributionData}
-              endDate={new Date()}
-              numDays={95}
-              width={screenWidth - 40}
-              height={220}
-              chartConfig={chartConfig}
-              gutterSize={4}
-              squareSize={18}
-              tooltipDataAttrs={(value) => ({ rx: "5" })}
-            />
+            <Text
+              style={{
+                color: currentTheme.accent,
+                fontSize: 16,
+                fontWeight: "bold",
+              }}
+            >
+              {totalSessions}
+            </Text>
           </View>
         </View>
 

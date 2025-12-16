@@ -227,11 +227,11 @@ export const themes: Theme[] = [
 ];
 
 const defaultPresets: Preset[] = [
-  { id: "p1", name: "Klasik Odak", work: 25, short: 5, long: 15 },
-  { id: "p2", name: "Derin Çalışma", work: 50, short: 10, long: 20 },
-  { id: "p3", name: "Hızlı Pomodoro", work: 15, short: 3, long: 10 },
-  { id: "p4", name: "Uzun Odak", work: 45, short: 15, long: 30 },
-  { id: "p5", name: "Öğrenci Modu", work: 20, short: 5, long: 15 },
+  { id: "p1", name: "classicFocus", work: 25, short: 5, long: 15 },
+  { id: "p2", name: "deepWork", work: 50, short: 10, long: 20 },
+  { id: "p3", name: "quickPomodoro", work: 15, short: 3, long: 10 },
+  { id: "p4", name: "longFocus", work: 45, short: 15, long: 30 },
+  { id: "p5", name: "studentMode", work: 20, short: 5, long: 15 },
 ];
 
 interface TimerProviderProps {
