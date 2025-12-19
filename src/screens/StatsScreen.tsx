@@ -9,7 +9,7 @@ import {
 } from "react-native";
 import { TimerContext } from "../context/TimerContext";
 import { Ionicons } from "@expo/vector-icons";
-import { ContributionGraph, BarChart } from "react-native-chart-kit";
+import { BarChart } from "react-native-chart-kit";
 import { StackNavigationProp } from "@react-navigation/stack";
 import { RootStackParamList } from "../navigation/AppNavigator";
 

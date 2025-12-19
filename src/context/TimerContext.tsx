@@ -303,13 +303,75 @@ export const TimerProvider = ({ children }: TimerProviderProps) => {
     }
   };
 
+  // Settings Persistence
+  useEffect(() => {
+    const saveSettings = async () => {
+      const settings = {
+        workTime,
+        shortBreakTime,
+        longBreakTime,
+        longBreakInterval,
+        autoStartBreak,
+        autoStartPomodoro,
+        isSoundEnabled,
+        showParticles,
+        currentThemeId: currentTheme.id,
+        language,
+      };
+      try {
+        await AsyncStorage.setItem("@app_settings", JSON.stringify(settings));
+      } catch (e) {
+        console.error("Failed to save settings", e);
+      }
+    };
+    saveSettings();
+  }, [
+    workTime,
+    shortBreakTime,
+    longBreakTime,
+    longBreakInterval,
+    autoStartBreak,
+    autoStartPomodoro,
+    isSoundEnabled,
+    showParticles,
+    currentTheme,
+    language,
+  ]);
+
   useEffect(() => {
     const loadData = async (): Promise<void> => {
       try {
-        const jsonValue = await AsyncStorage.getItem("@timer_history");
-        if (jsonValue != null) {
-          const parsed = JSON.parse(jsonValue) as HistoryEntry[];
-          setHistory(parsed);
+        // Load History
+        const historyJson = await AsyncStorage.getItem("@timer_history");
+        if (historyJson != null) {
+          const parsedHistory = JSON.parse(historyJson) as HistoryEntry[];
+          setHistory(parsedHistory);
+        }
+
+        // Load Settings
+        const settingsJson = await AsyncStorage.getItem("@app_settings");
+        if (settingsJson != null) {
+          const settings = JSON.parse(settingsJson);
+          if (settings.workTime) setWorkTime(settings.workTime);
+          if (settings.shortBreakTime) setShortBreakTime(settings.shortBreakTime);
+          if (settings.longBreakTime) setLongBreakTime(settings.longBreakTime);
+          if (settings.longBreakInterval)
+            setLongBreakInterval(settings.longBreakInterval);
+          if (settings.autoStartBreak !== undefined)
+            setAutoStartBreak(settings.autoStartBreak);
+          if (settings.autoStartPomodoro !== undefined)
+            setAutoStartPomodoro(settings.autoStartPomodoro);
+          if (settings.isSoundEnabled !== undefined)
+            setIsSoundEnabled(settings.isSoundEnabled);
+          if (settings.showParticles !== undefined)
+            setShowParticles(settings.showParticles);
+          if (settings.language) setLanguage(settings.language);
+          if (settings.currentThemeId) {
+            const foundTheme = themes.find(
+              (t) => t.id === settings.currentThemeId,
+            );
+            if (foundTheme) setCurrentTheme(foundTheme);
+          }
         }
       } catch (e) {
         console.error(e);
